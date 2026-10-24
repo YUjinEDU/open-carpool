@@ -15,7 +15,8 @@ import {
   type StepLog,
 } from './harness';
 
-const OUT = join(import.meta.dir, '..', '..', '.omo', 'qa', 'crew-slice');
+const VIEWPORT = process.env.E2E_VIEWPORT === 'desktop' ? { name: 'desktop', w: 1280, h: 900 } : { name: 'mobile', w: 390, h: 844 };
+const OUT = join(import.meta.dir, '..', '..', '.omo', 'qa', 'crew-slice', VIEWPORT.name);
 const JAVA_HOME = 'C:\\Users\\sdlab\\.cache\\open-carpool-tools\\jdk-21.0.12.1+1-jre';
 const PORTS = [5173, 8080, 9099] as const;
 
@@ -108,8 +109,8 @@ async function main(): Promise<void> {
   const busy = await waitPortsFree(0);
   if (busy.length > 0) throw new Error(`ports already in use: ${busy.join(', ')}`);
   await startStack();
-  const a = openPage('A', 430, 1400, OUT);
-  const b = openPage('B', 430, 1400, OUT);
+  const a = openPage('A', VIEWPORT.w, VIEWPORT.h, OUT);
+  const b = openPage('B', VIEWPORT.w, VIEWPORT.h, OUT);
   const today = seoulToday();
   const todayCard = `[data-testid="trip-card-${today}_out"]`;
   let gid = '';

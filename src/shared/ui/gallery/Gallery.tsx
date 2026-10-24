@@ -346,7 +346,7 @@ export function Gallery() {
               <Input label="검색" labelHidden placeholder="주소나 역 이름" leading={<Search />} />
               <Select label="그룹 유형" defaultValue="company">
                 <option value="company">회사</option>
-                <option value="campus">대학</option>
+                <option value="university">대학</option>
                 <option value="club">동호회</option>
                 <option value="school">학부모 모임</option>
               </Select>

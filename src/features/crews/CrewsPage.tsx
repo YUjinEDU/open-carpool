@@ -10,6 +10,7 @@ import { AvatarStack, Button, Card, EmptyState, IconButton, List, Skeleton, TopB
 import { useMembers } from '../members/hooks';
 import { CrewCard } from './CrewCard';
 import { CrewForm } from './CrewForm';
+import { PlatePartners } from './PlatePartners';
 import { useCrews } from './hooks';
 
 /** Form state: closed, or open with members pre-selected besides me. */
@@ -140,6 +141,7 @@ export function CrewsPage() {
             )}
           </Section>
         )}
+              <PlatePartners group={group} members={active} me={me} />
       </PageBody>
     </>
   );

@@ -8,7 +8,8 @@
 import { join } from 'node:path';
 import { ORIGIN_A, ORIGIN_B, openPage, signInWithEmailLink, startStack, stopStack, type Page, type StepLog } from './harness';
 
-const OUT = join(import.meta.dir, '..', '..', '.omo', 'qa', 'admin-events');
+const VIEWPORT = process.env.E2E_VIEWPORT === 'desktop' ? { name: 'desktop', w: 1280, h: 900 } : { name: 'mobile', w: 390, h: 844 };
+const OUT = join(import.meta.dir, '..', '..', '.omo', 'qa', 'admin-events', VIEWPORT.name);
 const JAVA_HOME = 'C:\\Users\\sdlab\\.cache\\open-carpool-tools\\jdk-21.0.12.1+1-jre';
 const PORTS = [5173, 8080, 9099] as const;
 const CSV_HEADER = 'date,leg,crew,driver,riders,absent,status,completedBy,completedAt';
@@ -95,9 +96,9 @@ async function saveProfile(page: Page, gid: string, opts: { name: string; drives
   await spaGo(page, `/g/${gid}/profile`);
   await page.waitFor('[data-testid="profile-display-name"]');
   await page.fill('[data-testid="profile-display-name"]', opts.name);
-  const drives = await page.eval<boolean>(`document.querySelector('[data-testid="profile-can-drive"]').checked`);
+  const drives = await page.eval<boolean>(`document.querySelector('[data-testid="profile-can-drive"]').getAttribute('aria-checked') === 'true'`);
   if (drives !== opts.drives) await page.click('[data-testid="profile-can-drive"]');
-  const monday = await page.eval<boolean>(`document.querySelector('[data-testid="profile-day-1"]').checked`);
+  const monday = await page.eval<boolean>(`document.querySelector('[data-testid="profile-day-1"]').getAttribute('aria-pressed') === 'true'`);
   if (!monday) await page.click('[data-testid="profile-day-1"]');
   await page.fill('[data-testid="profile-out-1"]', '08:00');
   await page.click('[data-testid="profile-save"]');
@@ -108,8 +109,8 @@ async function main(): Promise<void> {
   const busy = await waitPortsFree(0);
   if (busy.length > 0) throw new Error(`ports already in use: ${busy.join(', ')}`);
   await startStack();
-  const a = openPage('A', 430, 1400, OUT);
-  const b = openPage('B', 430, 1400, OUT);
+  const a = openPage('A', VIEWPORT.w, VIEWPORT.h, OUT);
+  const b = openPage('B', VIEWPORT.w, VIEWPORT.h, OUT);
   const today = seoulToday();
   const todayCard = `[data-testid="trip-card-${today}_out"]`;
   let gid = '';
@@ -124,6 +125,8 @@ async function main(): Promise<void> {
       await a.waitFor('[data-testid="group-name"]', 30_000);
       await a.fill('[data-testid="group-name"]', 'Slice Co');
       await a.fill('[data-testid="group-country"]', 'KR');
+      await a.click('[data-testid="group-next"]');
+      await a.click('[data-testid="group-next"]');
       await a.click('[data-testid="group-create-submit"]');
       await a.waitFor('[data-testid="invite-code"]', 20_000);
       gid = (await a.eval<string>('location.pathname')).split('/')[2] ?? '';
@@ -142,6 +145,7 @@ async function main(): Promise<void> {
       await spaGo(a, `/g/${gid}/crews`);
       await a.click('[data-testid="crew-new"]');
       await a.waitFor('[data-testid="crew-form"]');
+      await a.waitFor('input[data-testid^="crew-member-"]:not([disabled])');
       const ids = await a.eval<{ me: string; other: string }>(`(() => {
         const boxes = [...document.querySelectorAll('input[data-testid^="crew-member-"]')];
         const id = (el) => el.dataset.testid.slice('crew-member-'.length);
@@ -162,6 +166,7 @@ async function main(): Promise<void> {
       await spaGo(a, `/g/${gid}/crews/${cid}`);
       await waitForInText(a, `${todayCard} [data-testid="trip-driver"]`, 'Alice', 30_000);
       await a.click(`${todayCard} [data-testid="trip-done"]`);
+      await a.waitFor(`${todayCard} [data-testid="trip-done-rider-${uidB}"]`);
       await a.click(`${todayCard} [data-testid="trip-done-confirm"]`);
       await a.waitFor(`${todayCard} [data-testid="trip-completed"]`, 20_000);
       return `cid=${cid} A=${uidA} B=${uidB}, trip ${today}_out done`;
