@@ -1,12 +1,17 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { RefreshCw, X } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
 import { useSession } from '../../app/providers/session';
-import { showToast } from '../../components/Toast';
-import { rotateInviteCode, updateGroup } from '../../data/groups';
+import { InviteShare } from '../../app/shell/InviteShare';
+import { PageBody } from '../../app/shell/PageBody';
+import { useBack } from '../../app/shell/useBack';
+import { rotateInviteCode, updateGroup, type GroupPatch } from '../../data/groups';
 import { legalNoticeKey } from '../../domain/policies';
 import type { CostMode, GroupPolicy, PlateRotation } from '../../domain/types';
 import { useAction } from '../../shared/lib/useAction';
+import { Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, IconButton, Input, Select, TopBar } from '../../shared/ui';
 import type { Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
 import { GroupBasicsFields, type GroupBasics } from './GroupBasicsFields';
@@ -14,154 +19,260 @@ import { COST_MODES, parseEmailDomains, PLATE_ROTATIONS } from './options';
 
 const isCostMode = (v: string): v is CostMode => COST_MODES.some((m) => m === v);
 const isPlateRotation = (v: string): v is PlateRotation => PLATE_ROTATIONS.some((r) => r === v);
+const CUTOFF_HOURS = [17, 18, 19, 20, 21, 22, 23];
+const SAVED_BADGE_MS = 2000;
+
+/** Per-card save: runs the patch, refreshes the group and shows a "saved" badge for two seconds. */
+function useCardSave(patch: () => GroupPatch) {
+  const { group, refresh } = useGroup();
+  const [saved, setSaved] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const action = useAction(async () => {
+    await updateGroup(group.id, patch());
+    refresh();
+    setSaved(true);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setSaved(false), SAVED_BADGE_MS);
+  });
+  return { ...action, saved } as const;
+}
+
+function SavedBadge({ saved }: { readonly saved: boolean }) {
+  const { t } = useTranslation();
+  return saved ? <Badge variant="success">{t('common.savedBadge')}</Badge> : null;
+}
 
 export function SettingsPage() {
   const { t } = useTranslation();
-  const { isAdmin } = useGroup();
+  const navigate = useNavigate();
+  const { group, isAdmin } = useGroup();
+  const back = useBack(`/g/${group.id}`);
   return (
-    <main className="p-4">
-      <h1>{t('settings.title')}</h1>
-      {isAdmin ? (
-        <>
-          <GroupSettingsForm />
-          <InviteSection />
-        </>
-      ) : (
-        <p role="alert">{t('common.adminsOnly')}</p>
-      )}
-    </main>
+    <>
+      <TopBar wide title={t('settings.title')} onBack={back} backLabel={t('nav.back')} />
+      <PageBody nav wide className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        {isAdmin ? (
+          <>
+            <InviteCard />
+            <BasicsCard />
+            <PolicyCard />
+            <DomainsCard />
+          </>
+        ) : (
+          <EmptyState
+            title={t('common.forbiddenTitle')}
+            description={t('common.forbiddenBody')}
+            action={<Button variant="secondary" onClick={() => navigate(`/g/${group.id}`)}>{t('common.toGroup')}</Button>}
+            className="lg:col-span-2"
+          />
+        )}
+      </PageBody>
+    </>
   );
 }
 
-function GroupSettingsForm() {
+function InviteCard() {
   const { t } = useTranslation();
   const { group, refresh } = useGroup();
+  const { user } = useSession();
+  const [asking, setAsking] = useState(false);
+  const rotate = useAction(async () => {
+    await rotateInviteCode(group.id, user.uid);
+    setAsking(false);
+    refresh();
+  });
+  return (
+    <Card as="section" className="flex flex-col gap-4">
+      <CardHeader title={t('settings.invite')} description={t('invite.hint')} />
+      <InviteShare group={group} withTestIds />
+      <Button variant="ghost" size="sm" leadingIcon={<RefreshCw />} className="self-start" onClick={() => setAsking(true)} data-testid="invite-rotate">
+        {t('invite.rotate')}
+      </Button>
+      <Dialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        role="alertdialog"
+        title={t('invite.rotateConfirmTitle')}
+        description={t('invite.rotateConfirmBody')}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setAsking(false)}>{t('common.cancel')}</Button>
+            <Button loading={rotate.busy} onClick={() => rotate.run()} data-testid="invite-rotate-confirm">
+              {t('invite.rotateAction')}
+            </Button>
+          </>
+        }
+      />
+    </Card>
+  );
+}
+
+function BasicsCard() {
+  const { t } = useTranslation();
+  const { group } = useGroup();
   const [basics, setBasics] = useState<GroupBasics>({ name: group.name, type: group.type, country: group.country });
-  const [policy, setPolicy] = useState<GroupPolicy>(group.policy);
-  const [domains, setDomains] = useState(group.allowedEmailDomains.join(', '));
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [destination, setDestination] = useState<Place | null>(
     group.destination ? { label: group.destination.label, point: group.destination } : null,
   );
-  const isKorea = basics.country === 'KR';
+  const save = useCardSave(() => ({
+    name: basics.name.trim(),
+    type: basics.type,
+    destination: destination?.point ? { label: destination.label, lat: destination.point.lat, lng: destination.point.lng } : null,
+  }));
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (basics.name.trim() === '') {
+      setNameError(t('createGroup.nameError'));
+      return;
+    }
+    setNameError(undefined);
+    save.run();
+  };
+  return (
+    <Card as="section">
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <CardHeader title={t('settings.basics')} action={<SavedBadge saved={save.saved} />} />
+        <GroupBasicsFields prefix="settings" value={basics} onChange={setBasics} nameError={nameError} countryReadOnly />
+        <PlaceSearch id="settings-destination" label={t('group.destination')} country={basics.country} value={destination} onChange={setDestination} />
+        <Button type="submit" variant="secondary" loading={save.busy} loadingLabel={t('settings.saving')} className="self-start" data-testid="settings-save">
+          {t('common.save')}
+        </Button>
+      </form>
+    </Card>
+  );
+}
 
-  const save = useAction(async () => {
-    await updateGroup(group.id, {
-      name: basics.name.trim(),
-      type: basics.type,
-      country: basics.country,
-      allowedEmailDomains: parseEmailDomains(domains),
-      destination: destination?.point
-        ? { label: destination.label, lat: destination.point.lat, lng: destination.point.lng }
-        : null,
-      policy: isKorea ? { ...policy, costMode: 'rotation' } : policy,
-    });
-    refresh();
-    showToast(t('common.saved'), 'success');
-  });
-
+function PolicyCard() {
+  const { t } = useTranslation();
+  const { group } = useGroup();
+  const [policy, setPolicy] = useState<GroupPolicy>(group.policy);
+  const isKorea = group.country.trim().toUpperCase() === 'KR';
+  const hours = CUTOFF_HOURS.includes(policy.absenceCutoffHour) ? CUTOFF_HOURS : [...CUTOFF_HOURS, policy.absenceCutoffHour].sort((a, b) => a - b);
+  const save = useCardSave(() => ({ policy: isKorea ? { ...policy, costMode: 'rotation' } : policy }));
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     save.run();
   };
-
   return (
-    <form onSubmit={onSubmit}>
-      <GroupBasicsFields prefix="settings" value={basics} onChange={setBasics} />
-      <label htmlFor="settings-cost-mode">{t('settings.costMode')}</label>
-      <select
-        id="settings-cost-mode"
-        value={isKorea ? 'rotation' : policy.costMode}
-        disabled={isKorea}
-        onChange={(e) => isCostMode(e.target.value) && setPolicy({ ...policy, costMode: e.target.value })}
-        data-testid="settings-cost-mode"
-      >
-        {COST_MODES.map((mode) => (
-          <option key={mode} value={mode}>
-            {t(`costMode.${mode}`)}
-          </option>
-        ))}
-      </select>
-      <p data-testid="settings-legal-notice">{t(legalNoticeKey({ country: basics.country, policy }))}</p>
-      <label htmlFor="settings-cutoff">{t('settings.absenceCutoffHour')}</label>
-      <input
-        id="settings-cutoff"
-        type="number"
-        min={0}
-        max={23}
-        required
-        value={policy.absenceCutoffHour}
-        onChange={(e) => setPolicy({ ...policy, absenceCutoffHour: Number(e.target.value) })}
-        data-testid="settings-cutoff"
-      />
-      <label htmlFor="settings-plate-rotation">{t('settings.plateRotation')}</label>
-      <select
-        id="settings-plate-rotation"
-        value={policy.plateRotation}
-        onChange={(e) => isPlateRotation(e.target.value) && setPolicy({ ...policy, plateRotation: e.target.value })}
-        data-testid="settings-plate-rotation"
-      >
-        {PLATE_ROTATIONS.map((rotation) => (
-          <option key={rotation} value={rotation}>
-            {t(`plateRotation.${rotation}`)}
-          </option>
-        ))}
-      </select>
-      <label htmlFor="settings-domains">{t('settings.allowedEmailDomains')}</label>
-      <textarea
-        id="settings-domains"
-        value={domains}
-        onChange={(e) => setDomains(e.target.value)}
-        placeholder="example.com"
-        data-testid="settings-domains"
-      />
-      <p>{t('settings.allowedEmailDomainsHint')}</p>
-      <PlaceSearch
-        id="settings-destination"
-        label={t('group.destination')}
-        country={basics.country}
-        value={destination}
-        onChange={setDestination}
-      />
-      <button type="submit" disabled={save.busy} data-testid="settings-save">
-        {t('common.save')}
-      </button>
-    </form>
+    <Card as="section">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <CardHeader title={t('settings.policy')} action={<SavedBadge saved={save.saved} />} />
+        <Select
+          id="settings-cutoff"
+          label={t('settings.absenceCutoffHour')}
+          value={String(policy.absenceCutoffHour)}
+          onChange={(e) => setPolicy({ ...policy, absenceCutoffHour: Number(e.target.value) })}
+          data-testid="settings-cutoff"
+        >
+          {hours.map((hour) => (
+            <option key={hour} value={hour}>
+              {t('settings.cutoffOption', { hour })}
+            </option>
+          ))}
+        </Select>
+        <Select
+          id="settings-plate-rotation"
+          label={t('settings.plateRotation')}
+          value={policy.plateRotation}
+          onChange={(e) => isPlateRotation(e.target.value) && setPolicy({ ...policy, plateRotation: e.target.value })}
+          data-testid="settings-plate-rotation"
+        >
+          {PLATE_ROTATIONS.map((rotation) => (
+            <option key={rotation} value={rotation}>
+              {t(`plateRotation.${rotation}`)}
+            </option>
+          ))}
+        </Select>
+        <Select
+          id="settings-cost-mode"
+          label={t('settings.costMode')}
+          value={isKorea ? 'rotation' : policy.costMode}
+          disabled={isKorea}
+          onChange={(e) => isCostMode(e.target.value) && setPolicy({ ...policy, costMode: e.target.value })}
+          data-testid="settings-cost-mode"
+        >
+          {COST_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {t(`costMode.${mode}`)}
+            </option>
+          ))}
+        </Select>
+        <Banner variant="info" data-testid="settings-legal-notice">
+          {t(legalNoticeKey({ country: group.country, policy }))}
+        </Banner>
+        <Button type="submit" variant="secondary" loading={save.busy} loadingLabel={t('settings.saving')} className="self-start" data-testid="settings-save-policy">
+          {t('common.save')}
+        </Button>
+      </form>
+    </Card>
   );
 }
 
-function InviteSection() {
+function DomainsCard() {
   const { t } = useTranslation();
-  const { group, refresh } = useGroup();
-  const { user } = useSession();
-  const link = `${window.location.origin}/join/${group.inviteCode}`;
-  const copy = useAction(async () => {
-    await navigator.clipboard.writeText(link);
-    showToast(t('invite.copied'), 'success');
-  });
-  const rotate = useAction(async () => {
-    if (!window.confirm(t('invite.rotateConfirm'))) return;
-    await rotateInviteCode(group.id, user.uid);
-    refresh();
-  });
-
+  const { group } = useGroup();
+  const [domains, setDomains] = useState<readonly string[]>(group.allowedEmailDomains);
+  const [draft, setDraft] = useState('');
+  const save = useCardSave(() => ({ allowedEmailDomains: [...domains] }));
+  const add = () => {
+    const parsed = parseEmailDomains(draft);
+    if (parsed.length === 0) return;
+    setDomains((prev) => [...new Set([...prev, ...parsed])]);
+    setDraft('');
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    add();
+  };
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (draft.trim()) add();
+    save.run();
+  };
   return (
-    <section aria-labelledby="invite-heading">
-      <h2 id="invite-heading">{t('invite.title')}</h2>
-      <p>
-        {t('invite.code')}: <code data-testid="invite-code">{group.inviteCode}</code>
-      </p>
-      <p>
-        {t('invite.link')}:{' '}
-        <a href={link} data-testid="invite-link">
-          {link}
-        </a>
-      </p>
-      <button type="button" onClick={() => copy.run()} disabled={copy.busy} data-testid="invite-copy">
-        {t('invite.copy')}
-      </button>
-      <button type="button" onClick={() => rotate.run()} disabled={rotate.busy} data-testid="invite-rotate">
-        {t('invite.rotate')}
-      </button>
-    </section>
+    <Card as="section">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <CardHeader title={t('settings.domains')} action={<SavedBadge saved={save.saved} />} />
+        {domains.length === 0 ? (
+          <p className="text-sub text-ink-2">{t('settings.domainsEmpty')}</p>
+        ) : (
+          <ul role="list" className="flex flex-wrap gap-2">
+            {domains.map((domain) => (
+              <li key={domain} className="inline-flex h-11 items-center gap-1 rounded-chip border border-line-strong bg-surface pl-3.5 pr-1 text-sub font-medium text-ink">
+                @{domain}
+                <IconButton label={t('settings.domainRemove', { domain })} icon={<X />} onClick={() => setDomains((prev) => prev.filter((d) => d !== domain))} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <Input
+          id="settings-domains"
+          label={t('settings.allowedEmailDomains')}
+          labelHidden
+          hint={t('settings.allowedEmailDomainsHint')}
+          inputMode="email"
+          autoCapitalize="none"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('settings.domainPlaceholder')}
+          leading={<span className="text-sub">@</span>}
+          trailing={
+            <Button type="button" variant="ghost" size="sm" onClick={add} disabled={!draft.trim()} className="mr-1">
+              {t('settings.domainAdd')}
+            </Button>
+          }
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={onKeyDown}
+          data-testid="settings-domains"
+        />
+        <Button type="submit" variant="secondary" loading={save.busy} loadingLabel={t('settings.saving')} className="self-start" data-testid="settings-save-domains">
+          {t('common.save')}
+        </Button>
+      </form>
+    </Card>
   );
 }

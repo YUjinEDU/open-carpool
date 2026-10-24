@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
+import { AlertCircle, LinkIcon } from 'lucide-react';
 import { assertNever } from '../../domain/assert';
 import { describeError } from '../../shared/lib/useAction';
+import { Button, EmptyState, Input, Spinner } from '../../shared/ui';
 import { completeEmailLinkSignIn } from './authService';
 import { safeNext } from './next';
 
@@ -55,31 +57,42 @@ export function SignInFinishPage() {
     e.preventDefault();
     void finish(email.trim());
   };
+  const retry = <Button onClick={() => navigate('/signin', { replace: true })}>{t('signinFinish.retry')}</Button>;
 
   return (
-    <main className="p-4">
-      <h1>{t('signinFinish.title')}</h1>
-      {state.status === 'working' && <p role="status">{t('signinFinish.working')}</p>}
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5 pb-safe pt-10">
+      {state.status === 'working' && (
+        <div className="flex flex-col items-center gap-4 text-center">
+          <Spinner size="lg" label={t('signinFinish.working')} className="text-accent" />
+          <p className="text-body text-ink-2">{t('signinFinish.working')}</p>
+        </div>
+      )}
       {state.status === 'needs-email' && (
-        <form onSubmit={onSubmit}>
-          <p>{t('signinFinish.needsEmail')}</p>
-          <label htmlFor="signin-finish-email">{t('signin.emailLabel')}</label>
-          <input
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <h1 className="text-title-2 text-ink">{t('signinFinish.title')}</h1>
+          <p className="text-body text-ink-2">{t('signinFinish.needsEmail')}</p>
+          <Input
             id="signin-finish-email"
+            label={t('signin.emailLabel')}
             type="email"
+            inputMode="email"
+            autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             data-testid="signin-finish-email"
           />
-          <button type="submit" data-testid="signin-finish-submit">
+          <Button type="submit" size="lg" fullWidth data-testid="signin-finish-submit">
             {t('signinFinish.submit')}
-          </button>
+          </Button>
         </form>
       )}
-      {state.status === 'invalid' && <p role="alert">{t('signinFinish.invalid')}</p>}
-      {state.status === 'failed' && <p role="alert">{state.message}</p>}
-      {(state.status === 'invalid' || state.status === 'failed') && <Link to="/signin">{t('signinFinish.retry')}</Link>}
+      {state.status === 'invalid' && (
+        <EmptyState icon={<LinkIcon />} title={t('signinFinish.invalid')} description={t('signinFinish.invalidHint')} action={retry} />
+      )}
+      {state.status === 'failed' && (
+        <EmptyState icon={<AlertCircle />} title={t('signinFinish.failedTitle')} description={state.message} action={retry} />
+      )}
     </main>
   );
 }

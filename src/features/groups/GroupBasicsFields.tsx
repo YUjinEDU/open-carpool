@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { CountryCode, GroupType } from '../../domain/types';
+import { Input, Select } from '../../shared/ui';
 import { COUNTRIES, countryName, GROUP_TYPES } from './options';
 
 export interface GroupBasics {
@@ -13,27 +14,32 @@ export interface GroupBasicsFieldsProps {
   readonly prefix: string;
   readonly value: GroupBasics;
   readonly onChange: (value: GroupBasics) => void;
+  /** Validation message under the name field. */
+  readonly nameError?: string;
+  readonly countryReadOnly?: boolean;
 }
 
 const isGroupType = (v: string): v is GroupType => GROUP_TYPES.some((type) => type === v);
 
-export function GroupBasicsFields({ prefix, value, onChange }: GroupBasicsFieldsProps) {
+export function GroupBasicsFields({ prefix, value, onChange, nameError, countryReadOnly = false }: GroupBasicsFieldsProps) {
   const { t, i18n } = useTranslation();
   const countries = COUNTRIES.includes(value.country) ? COUNTRIES : [value.country, ...COUNTRIES];
   return (
     <>
-      <label htmlFor={`${prefix}-name`}>{t('group.name')}</label>
-      <input
+      <Input
         id={`${prefix}-name`}
+        label={t('group.name')}
         required
         maxLength={80}
+        autoComplete="organization"
+        error={nameError}
         value={value.name}
         onChange={(e) => onChange({ ...value, name: e.target.value })}
         data-testid={`${prefix}-name`}
       />
-      <label htmlFor={`${prefix}-type`}>{t('group.type')}</label>
-      <select
+      <Select
         id={`${prefix}-type`}
+        label={t('group.type')}
         value={value.type}
         onChange={(e) => isGroupType(e.target.value) && onChange({ ...value, type: e.target.value })}
         data-testid={`${prefix}-type`}
@@ -43,11 +49,12 @@ export function GroupBasicsFields({ prefix, value, onChange }: GroupBasicsFields
             {t(`groupType.${type}`)}
           </option>
         ))}
-      </select>
-      <label htmlFor={`${prefix}-country`}>{t('group.country')}</label>
-      <select
+      </Select>
+      <Select
         id={`${prefix}-country`}
+        label={t('group.country')}
         value={value.country}
+        disabled={countryReadOnly}
         onChange={(e) => onChange({ ...value, country: e.target.value })}
         data-testid={`${prefix}-country`}
       >
@@ -56,7 +63,7 @@ export function GroupBasicsFields({ prefix, value, onChange }: GroupBasicsFields
             {countryName(code, i18n.language)}
           </option>
         ))}
-      </select>
+      </Select>
     </>
   );
 }
