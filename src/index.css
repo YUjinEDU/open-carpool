@@ -1,4 +1,5 @@
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+/* Self-hosted (S-13): the dynamic subset ships in the `pretendard` package and Vite bundles its woff2 slices; no font CDN in the CSP. */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 @import "tailwindcss";
 
 /*

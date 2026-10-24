@@ -45,7 +45,7 @@ Review: `.omo/reviews/security-r1.md` (finding ids S-xx). Rules tests in `tests/
 
 Remaining items:
 - **S-12 (recommended)**: enable Firebase App Check (reCAPTCHA Enterprise) and enforce it for Firestore; set a budget alert. Signed-in users can still create unbounded groups/docs within the shape limits.
-- **S-13 (pending)**: the Pretendard font is `@import`ed from jsDelivr pinned to a git tag (no SRI). To be self-hosted with the UI work; the CSP allows `cdn.jsdelivr.net` for styles and fonts until then.
+- **S-13 (done)**: the Pretendard dynamic subset is self-hosted from the `pretendard` npm package (`src/index.css`, bundled by Vite into `/assets`); the CSP has no font or style host beyond `'self'` (`src/font.test.ts`, `api/_security-headers.test.ts`).
 - **S-04**: `areaLabel` stores the geocoder's full address; tracked separately (product + data change).
 - **S-16 / S-17 (info)**: Kakao OIDC `email_verified` depends on provider claims (keep "one account per email address"); the invite-code oracle is infeasible for small installs, see the review for many-group instances.
 - The Naver proxy has no per-user rate limit yet; a valid account can still spend quota.

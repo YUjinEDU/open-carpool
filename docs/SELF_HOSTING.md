@@ -44,7 +44,7 @@ Without map keys the app still works: members type an area name and no coordinat
 
    | Header | Value |
    |---|---|
-   | `Content-Security-Policy` | `default-src 'self'`; `script-src 'self' https://apis.google.com https://www.gstatic.com https://maps.googleapis.com` (Firebase Auth popup helper, Google Maps JS); `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com` (Auth, Firestore, Maps; Naver goes through `/api`); `img-src 'self' data: blob: https:`; `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com`; `font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com`; `frame-src https://*.firebaseapp.com https://*.web.app https://accounts.google.com` (Auth iframe/popup); `worker-src 'self'`; `manifest-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'` |
+   | `Content-Security-Policy` | `default-src 'self'`; `script-src 'self' https://apis.google.com https://www.gstatic.com https://maps.googleapis.com` (Firebase Auth popup helper, Google Maps JS); `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com` (Auth, Firestore, Maps; Naver goes through `/api`); `img-src 'self' data: blob: https:`; `style-src 'self' 'unsafe-inline'`; `font-src 'self'` (Pretendard is bundled from the npm package); `frame-src https://*.firebaseapp.com https://*.web.app https://accounts.google.com` (Auth iframe/popup); `worker-src 'self'`; `manifest-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'` |
    | `X-Content-Type-Options` | `nosniff` |
    | `X-Frame-Options` | `DENY` |
    | `Referrer-Policy` | `strict-origin-when-cross-origin` |

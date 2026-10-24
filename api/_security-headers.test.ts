@@ -30,6 +30,12 @@ describe('security headers', () => {
     expect(policy.get('script-src')).not.toContain("'unsafe-eval'");
   });
 
+  it('serves fonts and styles from the app origin only (S-13: no font CDN in the chain)', () => {
+    const policy = csp();
+    expect(policy.get('font-src')).toEqual(["'self'"]);
+    expect(policy.get('style-src')).toEqual(["'self'", "'unsafe-inline'"]);
+  });
+
   it('allows the Firebase and Maps endpoints the app talks to', () => {
     const policy = csp();
     expect(policy.get('connect-src')).toEqual(expect.arrayContaining(["'self'", 'https://*.googleapis.com']));
