@@ -15,7 +15,12 @@ describe('isAllowedOrigin', () => {
     expect(isAllowedOrigin('', list)).toBe(false);
     expect(isAllowedOrigin('not a url', list)).toBe(false);
   });
-  it('always allows local dev servers', () => {
-    expect(isAllowedOrigin('http://localhost:5173', allowedOrigins(undefined))).toBe(true);
+  it('allows local dev servers outside production', () => {
+    expect(isAllowedOrigin('http://localhost:5173', allowedOrigins(undefined, 'development'))).toBe(true);
+    expect(isAllowedOrigin('http://localhost:5173', allowedOrigins(undefined, undefined))).toBe(true);
+  });
+  it('rejects local dev servers in production', () => {
+    expect(isAllowedOrigin('http://localhost:5173', allowedOrigins('https://carpool.example.org', 'production'))).toBe(false);
+    expect(isAllowedOrigin('http://localhost:4173', allowedOrigins(undefined, 'production'))).toBe(false);
   });
 });

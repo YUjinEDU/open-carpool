@@ -53,7 +53,13 @@ export function parseNaverGeocode(body: unknown): GeocodeResult[] {
 
 export const NaverGeocoder: GeocodeProvider = {
   async geocode(query) {
-    const res = await fetch(`/api/naver/geocode?query=${encodeURIComponent(query)}`);
+    // The proxy requires the caller's Firebase ID token (api/naver/_auth.ts). Lazy import keeps
+    // Firebase out of this module's import graph for unit tests.
+    const { auth } = await import('../../firebase');
+    const token = await auth.currentUser?.getIdToken();
+    const res = await fetch(`/api/naver/geocode?query=${encodeURIComponent(query)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     if (!res.ok) throw new GeocodeError(res.status);
     return parseNaverGeocode(await res.json());
   },

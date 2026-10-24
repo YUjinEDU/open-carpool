@@ -1,35 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { requireUser } from './_auth';
 import { checkOrigin } from './_cors';
+import { proxyNaver } from './_naver';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const MAX_QUERY_LENGTH = 200;
+
+/** A single address query of 1..200 characters. */
+export function parseQuery(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const query = value.trim();
+  return query.length >= 1 && query.length <= MAX_QUERY_LENGTH ? query : null;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (!checkOrigin(req, res)) return;
-  const { query } = req.query;
-  if (!query) {
-    return res.status(400).json({ error: 'query parameter required' });
+  if (!(await requireUser(req, res))) return;
+  const query = parseQuery(req.query.query);
+  if (query === null) {
+    res.status(400).json({ error: `query must be 1..${MAX_QUERY_LENGTH} characters` });
+    return;
   }
-
-  const clientId = process.env.VITE_NAVER_CLIENT_ID || process.env.NAVER_CLIENT_ID || '';
-  const clientSecret = process.env.NAVER_CLIENT_SECRET || '';
-
-  try {
-    const params = new URLSearchParams({ query: String(query) });
-    const response = await fetch(
-      `https://maps.apigw.ntruss.com/map-geocode/v2/geocode?${params}`,
-      {
-        headers: {
-          'X-NCP-APIGW-API-KEY-ID': clientId,
-          'X-NCP-APIGW-API-KEY': clientSecret,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: `Naver API error: ${response.status}` });
-    }
-
-    const data = await response.json();
-    return res.status(200).json(data);
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Geocoding failed' });
-  }
+  await proxyNaver(res, '/map-geocode/v2/geocode', new URLSearchParams({ query }));
 }

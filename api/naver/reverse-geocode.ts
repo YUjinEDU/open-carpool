@@ -1,39 +1,27 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { requireUser } from './_auth';
 import { checkOrigin } from './_cors';
+import { proxyNaver } from './_naver';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+/** NAVER order: "lng,lat" (x,y), decimal degrees. */
+const COORDS = /^(-?\d{1,3}(?:\.\d{1,10})?),(-?\d{1,2}(?:\.\d{1,10})?)$/;
+
+export function parseCoords(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const match = COORDS.exec(value);
+  if (!match) return null;
+  const [, lng = '', lat = ''] = match;
+  return Math.abs(Number(lng)) <= 180 && Math.abs(Number(lat)) <= 90 ? `${lng},${lat}` : null;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (!checkOrigin(req, res)) return;
-  const { coords, output, orders } = req.query;
-  if (!coords) {
-    return res.status(400).json({ error: 'coords parameter required' });
+  if (!(await requireUser(req, res))) return;
+  const coords = parseCoords(req.query.coords);
+  if (coords === null) {
+    res.status(400).json({ error: 'coords must be "lng,lat" in decimal degrees' });
+    return;
   }
-
-  const clientId = process.env.VITE_NAVER_CLIENT_ID || process.env.NAVER_CLIENT_ID || '';
-  const clientSecret = process.env.NAVER_CLIENT_SECRET || '';
-
-  try {
-    const params = new URLSearchParams({
-      coords: String(coords),
-      output: String(output || 'json'),
-      orders: String(orders || 'roadaddr,addr'),
-    });
-    const response = await fetch(
-      `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc?${params}`,
-      {
-        headers: {
-          'X-NCP-APIGW-API-KEY-ID': clientId,
-          'X-NCP-APIGW-API-KEY': clientSecret,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: `Naver API error: ${response.status}` });
-    }
-
-    const data = await response.json();
-    return res.status(200).json(data);
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message || 'Reverse geocoding failed' });
-  }
+  // output and orders are fixed: clients cannot switch the response format the handler parses.
+  await proxyNaver(res, '/map-reversegeocode/v2/gc', new URLSearchParams({ coords, output: 'json', orders: 'roadaddr,addr' }));
 }
