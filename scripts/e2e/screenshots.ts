@@ -69,6 +69,17 @@ const addDays = (date: string, days: number): string => {
   return d.toISOString().slice(0, 10);
 };
 const isoWeekday = (date: string): number => [7, 1, 2, 3, 4, 5, 6][new Date(`${date}T00:00:00Z`).getUTCDay()];
+/**
+ * The seed crew's departure time. 운행 완료 is offered only once the leg has departed, so the captures need a
+ * time already in the past today (KST): the realistic 07:40 when it has passed, otherwise one hour ago.
+ */
+const seedOutTime = (): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  if (hour > 7 || (hour === 7 && Number(minute) >= 41)) return '07:40';
+  return hour >= 1 ? `${String(hour - 1).padStart(2, '0')}:${minute}` : '00:00';
+};
 
 async function portInUse(port: number): Promise<boolean> {
   try {
@@ -114,7 +125,8 @@ async function waitForInText(page: Page, selector: string, needle: string, timeo
   }
 }
 const isKo = async (page: Page): Promise<boolean> => (await page.eval<string>('navigator.language')).toLowerCase().startsWith('ko');
-const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했습니다' : 'Saved');
+const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했어요' : 'Saved');
+const GROUP_NAME = '다온테크 판교 출근 카풀';
 
 interface ProfileSpec {
   name: string;
@@ -159,7 +171,8 @@ async function signOut(page: Page): Promise<void> {
 }
 
 async function joinAs(page: Page, email: string, code: string, gid: string, spec: ProfileSpec): Promise<void> {
-  await signInWithEmailLink(page, ORIGIN_B, email, `/join/${code}`);
+  // first sign-in: the invite landing asks for the name before 참여하기
+  await signInWithEmailLink(page, ORIGIN_B, email, `/join/${code}`, spec.name);
   await page.click('[data-testid="join-submit"]');
   await page.waitFor('[data-testid="profile-display-name"]', 20_000);
   await saveProfile(page, gid, spec);
@@ -226,10 +239,11 @@ async function captureAll(page: Page, prefix: string, ctx: { gid: string; cid: s
     await page.waitFor('[data-testid="group-create-submit"]');
     await shot(page, prefix, 'create-group-3');
   });
-  await safe('join', async () => {
+  await safe('join-member', async () => {
+    // signed in and already a member: the landing says so instead of offering 참여하기 again
     await spaGo(page, `/join/${code}`);
-    await page.waitFor('[data-testid="join-submit"]');
-    await shot(page, prefix, 'join');
+    await page.waitFor('[data-testid="join-already-member"]');
+    await shot(page, prefix, 'join-member');
   });
   await safe('home', async () => {
     await spaGo(page, `/g/${gid}`);
@@ -257,7 +271,7 @@ async function captureAll(page: Page, prefix: string, ctx: { gid: string; cid: s
     await spaGo(page, `/g/${gid}/crews`);
     await page.waitFor(`[data-testid="crew-card-${cid}"]`);
     await shot(page, prefix, 'crews');
-    await page.click('[data-testid="crew-new"]');
+    await page.click('[data-testid="crew-new"]:not([disabled])');
     await page.waitFor('[data-testid="crew-form"]');
     await page.fill('[data-testid="crew-name"]', '야탑 8시 크루');
     await shot(page, prefix, 'crew-new');
@@ -307,6 +321,19 @@ async function captureAll(page: Page, prefix: string, ctx: { gid: string; cid: s
     await page.waitFor('[data-testid="me-save"]');
     await shot(page, prefix, 'me');
   });
+  await safe('admin', async () => {
+    await spaGo(page, `/g/${gid}/admin`);
+    await page.waitFor('[data-testid="admin-stats"]', 20_000);
+    await page.waitFor(`[data-testid="admin-crew-${cid}"]`);
+    await Bun.sleep(400);
+    await shot(page, prefix, 'admin');
+  });
+  await safe('events', async () => {
+    await spaGo(page, `/g/${gid}/events`);
+    await page.waitFor('[data-testid="event-new"]', 20_000);
+    await Bun.sleep(400);
+    await shot(page, prefix, 'events');
+  });
   await safe('not-found', async () => {
     await spaGo(page, '/nowhere');
     await Bun.sleep(300);
@@ -343,9 +370,9 @@ async function main(): Promise<void> {
   const uids: Record<string, string> = {};
   try {
     // --- seed -------------------------------------------------------------
-    await signInWithEmailLink(a, ORIGIN_A, 'seoyeon@daon.kr', '/groups/new');
+    await signInWithEmailLink(a, ORIGIN_A, 'seoyeon@daon.kr', '/groups/new', '박서연');
     await a.waitFor('[data-testid="group-name"]', 30_000);
-    await a.fill('[data-testid="group-name"]', '다온테크 판교 출근 카풀');
+    await a.fill('[data-testid="group-name"]', GROUP_NAME);
     await a.fill('[data-testid="group-country"]', 'KR');
     await a.click('[data-testid="group-next"]');
     await a.fill('[data-testid="group-destination-query"]', '판교역 1번 출구');
@@ -367,7 +394,7 @@ async function main(): Promise<void> {
 
     // A proposes the crew with everyone
     await spaGo(a, `/g/${gid}/crews`);
-    await a.click('[data-testid="crew-new"]');
+    await a.click('[data-testid="crew-new"]:not([disabled])');
     await a.waitFor('[data-testid="crew-form"]');
     const boxes = await a.eval<{ uid: string; name: string; disabled: boolean }[]>(`[...document.querySelectorAll('input[data-testid^="crew-member-"]')].map((el) => ({ uid: el.dataset.testid.slice('crew-member-'.length), name: el.closest('label').innerText.split('\\n')[0], disabled: el.disabled }))`);
     for (const box of boxes) {
@@ -379,7 +406,8 @@ async function main(): Promise<void> {
       const want = crewDays.includes(d);
       if ((await pressed(a, `[data-testid="crew-day-${d}"]`)) !== want) await a.click(`[data-testid="crew-day-${d}"]`);
     }
-    await a.fill('[data-testid="crew-out-time"]', '07:40');
+    const outTime = seedOutTime();
+    await a.fill('[data-testid="crew-out-time"]', outTime);
     await a.fill('[data-testid="crew-back-time"]', '18:30');
     await a.fill('[data-testid="crew-pickup-note"]', '정자역 3번 출구 앞');
     await a.fill('[data-testid="crew-wait-limit"]', '10');
@@ -403,10 +431,27 @@ async function main(): Promise<void> {
     await a.waitFor('[data-testid="crew-title"]', 20_000);
     const todayOut = `[data-testid="trip-card-${today}_out"]`;
     await a.waitFor(todayOut, 30_000);
+    console.log(`crew out time ${outTime}; today's out trip planned`);
+    // Before it is recorded: the driver's Home on trip day shows 운전 못 해요 and 운행 완료 side by side.
+    const m = openPage('M', 390, 844, WORK);
+    const d = openPage('D', 1280, 900, WORK);
+    for (const [page, prefix] of [[m, 'mobile'], [d, 'desktop']] as const) {
+      await page.goto(`${ORIGIN_A}/g/${gid}`);
+      await page.waitFor('[data-testid="group-home-title"]', 30_000);
+      await page.eval("(() => { localStorage.setItem('oc-theme', 'light'); delete document.documentElement.dataset.theme; })()");
+      await page.waitFor('[data-testid="next-trip-card"]', 20_000);
+      await Bun.sleep(800);
+      if (await page.eval<boolean>('!!document.querySelector(\'[data-testid="next-trip-card"] [data-testid="trip-done"]\')')) {
+        await shot(page, prefix, 'home-trip-day');
+      } else {
+        console.log(`skip ${prefix}-home-trip-day: A does not drive today's departed leg`);
+      }
+    }
     if (await a.eval<boolean>(`!!document.querySelector('${todayOut} [data-testid="trip-done"]')`)) {
       await a.click(`${todayOut} [data-testid="trip-done"]`);
       await a.click(`${todayOut} [data-testid="trip-done-confirm"]`);
-      await a.waitFor(`${todayOut} [data-testid="trip-completed"]`, 20_000);
+      // the ledger write waits for the 10 s undo window
+      await a.waitFor(`${todayOut} [data-testid="trip-completed"]`, 30_000);
     }
     // 김도윤 cannot make the day after tomorrow
     const later = `[data-testid="trip-card-${addDays(today, 2)}_out"]`;
@@ -421,8 +466,6 @@ async function main(): Promise<void> {
 
     // --- capture ----------------------------------------------------------
     const ctx = { gid, cid, code, today };
-    const m = openPage('M', 390, 844, WORK);
-    const d = openPage('D', 1280, 900, WORK);
     try {
       await m.goto(`${ORIGIN_A}/g/${gid}`);
       await m.waitFor('[data-testid="group-home-title"]', 30_000);
@@ -444,6 +487,12 @@ async function main(): Promise<void> {
         await page.waitFor('[data-testid="signin-email"]');
         await page.eval('delete document.documentElement.dataset.theme');
         await shot(page, prefix, 'signin');
+        // the shared invite link, opened signed out: group name first, sign-in inline below it
+        await page.goto(`${ORIGIN_B}/join/${code}?name=${encodeURIComponent(GROUP_NAME)}`);
+        await page.waitFor('[data-testid="join-group-name"]');
+        await page.waitFor('[data-testid="signin-email"]');
+        await page.eval('delete document.documentElement.dataset.theme');
+        await shot(page, prefix, 'join');
       }
     } finally {
       sm.close();

@@ -53,11 +53,19 @@ async function waitPortsFree(timeoutMs: number): Promise<number[]> {
 }
 
 const isKo = async (page: Page): Promise<boolean> => (await page.eval<string>('navigator.language')).toLowerCase().startsWith('ko');
-const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했습니다' : 'Saved');
+const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했어요' : 'Saved');
 const activeText = async (page: Page): Promise<string> => ((await isKo(page)) ? '운영 중' : 'Active');
 
 const seoulToday = (): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+/** A leg time already in the past today (KST) so 운행 완료 is offered during the run: one hour ago, never before 00:00. */
+const pastTimeSeoul = (): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  return hour >= 1 ? `${String(hour - 1).padStart(2, '0')}:${minute}` : '00:00';
+};
+const undoText = async (page: Page): Promise<string> => ((await isKo(page)) ? '되돌리기' : 'Undo');
 
 async function waitForInText(page: Page, selector: string, needle: string, timeoutMs = 20_000): Promise<string> {
   const deadline = Date.now() + timeoutMs;
@@ -121,7 +129,7 @@ async function main(): Promise<void> {
   let uidB = '';
   try {
     await step('a-create-group', [a], async () => {
-      await signInWithEmailLink(a, ORIGIN_A, 'alice@example.com', '/groups/new');
+      await signInWithEmailLink(a, ORIGIN_A, 'alice@example.com', '/groups/new', 'Alice');
       await a.waitFor('[data-testid="group-name"]', 30_000);
       await a.fill('[data-testid="group-name"]', 'Slice Co');
       await a.fill('[data-testid="group-country"]', 'KR');
@@ -135,7 +143,7 @@ async function main(): Promise<void> {
       return `gid=${gid} invite=${inviteCode}`;
     });
     await step('b-join', [b], async () => {
-      await signInWithEmailLink(b, ORIGIN_B, 'bob@example.com', `/join/${inviteCode}`);
+      await signInWithEmailLink(b, ORIGIN_B, 'bob@example.com', `/join/${inviteCode}`, 'Bob');
       await b.click('[data-testid="join-submit"]');
       await b.waitFor('[data-testid="profile-display-name"]', 20_000);
       await saveProfile(b, gid, { name: 'Bob', drives: false });
@@ -143,7 +151,7 @@ async function main(): Promise<void> {
     });
     await step('crew-and-trip', [a, b], async () => {
       await spaGo(a, `/g/${gid}/crews`);
-      await a.click('[data-testid="crew-new"]');
+      await a.click('[data-testid="crew-new"]:not([disabled])');
       await a.waitFor('[data-testid="crew-form"]');
       await a.waitFor('input[data-testid^="crew-member-"]:not([disabled])');
       const ids = await a.eval<{ me: string; other: string }>(`(() => {
@@ -156,7 +164,7 @@ async function main(): Promise<void> {
       await a.click(`[data-testid="crew-member-${uidB}"]`);
       await a.fill('[data-testid="crew-name"]', 'Morning run');
       for (const d of [6, 7]) await a.click(`[data-testid="crew-day-${d}"]`);
-      await a.fill('[data-testid="crew-out-time"]', '08:00');
+      await a.fill('[data-testid="crew-out-time"]', pastTimeSeoul());
       await a.click('[data-testid="crew-create-submit"]');
       await waitGone(a, '[data-testid="crew-form"]');
       cid = await a.eval<string>(`document.querySelector('li[data-testid^="crew-card-"]').dataset.testid.slice('crew-card-'.length)`);
@@ -168,8 +176,9 @@ async function main(): Promise<void> {
       await a.click(`${todayCard} [data-testid="trip-done"]`);
       await a.waitFor(`${todayCard} [data-testid="trip-done-rider-${uidB}"]`);
       await a.click(`${todayCard} [data-testid="trip-done-confirm"]`);
-      await a.waitFor(`${todayCard} [data-testid="trip-completed"]`, 20_000);
-      return `cid=${cid} A=${uidA} B=${uidB}, trip ${today}_out done`;
+      await a.waitForText(await undoText(a), 10_000);
+      await a.waitFor(`${todayCard} [data-testid="trip-completed"]`, 30_000);
+      return `cid=${cid} A=${uidA} B=${uidB}, trip ${today}_out done after the undo window`;
     });
     await step('a-admin-stats', [a], async () => {
       await spaGo(a, `/g/${gid}/admin`);

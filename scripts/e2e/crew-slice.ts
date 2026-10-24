@@ -60,13 +60,21 @@ async function waitPortsFree(timeoutMs: number): Promise<number[]> {
 
 /** UI strings depend on the browser language (ko or en). */
 const isKo = async (page: Page): Promise<boolean> => (await page.eval<string>('navigator.language')).toLowerCase().startsWith('ko');
-const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했습니다' : 'Saved');
+const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했어요' : 'Saved');
 const activeText = async (page: Page): Promise<string> => ((await isKo(page)) ? '운영 중' : 'Active');
 /** The ledger label is its own flex item, so innerText separates it with a line break rather than a space. */
 const ZERO_RIDES = /(^|\s)0(회| rides)(\s|$)/;
 
 const seoulToday = (): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+/** A leg time already in the past today (KST) so 운행 완료 is offered during the run: one hour ago, never before 00:00. */
+const pastTimeSeoul = (): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+  const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
+  return hour >= 1 ? `${String(hour - 1).padStart(2, '0')}:${minute}` : '00:00';
+};
+const undoText = async (page: Page): Promise<string> => ((await isKo(page)) ? '되돌리기' : 'Undo');
 
 async function waitForInText(page: Page, selector: string, needle: string, timeoutMs = 20_000): Promise<string> {
   const deadline = Date.now() + timeoutMs;
@@ -120,9 +128,9 @@ async function main(): Promise<void> {
   let uidB = '';
   try {
     await step('a-signin', [a], async () => {
-      await signInWithEmailLink(a, ORIGIN_A, 'alice@example.com', '/groups/new');
+      await signInWithEmailLink(a, ORIGIN_A, 'alice@example.com', '/groups/new', 'Alice');
       await a.waitFor('[data-testid="group-name"]', 30_000);
-      return 'signed in, on create-group';
+      return 'signed in (name gate passed), on create-group';
     });
     await step('a-create-group', [a], async () => {
       await a.fill('[data-testid="group-name"]', 'Slice Co');
@@ -131,17 +139,19 @@ async function main(): Promise<void> {
       await a.click('[data-testid="group-next"]');
       await a.click('[data-testid="group-next"]');
       await a.click('[data-testid="group-create-submit"]');
+      // lands on Home with the "group created" invite sheet open (replace navigation)
       await a.waitFor('[data-testid="invite-code"]', 20_000);
       gid = (await a.eval<string>('location.pathname')).split('/')[2] ?? '';
       inviteCode = (await a.text('[data-testid="invite-code"]')).trim();
-      return `gid=${gid} invite=${inviteCode}`;
+      return `gid=${gid} invite=${inviteCode} at ${await a.eval<string>('location.pathname')}`;
     });
     await step('a-profile', [a], async () => {
       await saveProfile(a, gid, { name: 'Alice', drives: true });
       return 'Alice can drive, Mon 08:00';
     });
     await step('b-join', [b], async () => {
-      await signInWithEmailLink(b, ORIGIN_B, 'bob@example.com', `/join/${inviteCode}`);
+      // the invite landing asks a first-time user for a name, then shows 참여하기
+      await signInWithEmailLink(b, ORIGIN_B, 'bob@example.com', `/join/${inviteCode}`, 'Bob');
       await b.click('[data-testid="join-submit"]');
       await b.waitFor('[data-testid="profile-display-name"]', 20_000);
       await saveProfile(b, gid, { name: 'Bob', drives: false });
@@ -149,7 +159,8 @@ async function main(): Promise<void> {
     });
     await step('a-create-crew', [a], async () => {
       await spaGo(a, `/g/${gid}/crews`);
-      await a.click('[data-testid="crew-new"]');
+      // enabled once the members are known (alone, the + opens the invite sheet instead of the form)
+      await a.click('[data-testid="crew-new"]:not([disabled])');
       await a.waitFor('[data-testid="crew-form"]');
       // the member list fills once the members query resolves; wait for the other member's checkbox
       await a.waitFor('input[data-testid^="crew-member-"]:not([disabled])');
@@ -163,14 +174,16 @@ async function main(): Promise<void> {
       await a.click(`[data-testid="crew-member-${uidB}"]`);
       await a.fill('[data-testid="crew-name"]', 'Morning run');
       for (const d of [6, 7]) await a.click(`[data-testid="crew-day-${d}"]`);
-      await a.fill('[data-testid="crew-out-time"]', '08:00');
+      // 운행 완료 is offered only from the leg's departure time, so today's leg must already have departed
+      const outTime = pastTimeSeoul();
+      await a.fill('[data-testid="crew-out-time"]', outTime);
       await a.click('[data-testid="crew-create-submit"]');
       // the form closes only after the server acknowledged the write (a rules rejection keeps it open)
       await waitGone(a, '[data-testid="crew-form"]');
       cid = (await a.eval<string>(
         `document.querySelector('li[data-testid^="crew-card-"]').dataset.testid.slice('crew-card-'.length)`,
       ));
-      return `cid=${cid} A=${uidA} B=${uidB}`;
+      return `cid=${cid} A=${uidA} B=${uidB} out=${outTime}`;
     });
     await step('b-accept', [b], async () => {
       await spaGo(b, `/g/${gid}/crews`);
@@ -197,8 +210,10 @@ async function main(): Promise<void> {
       );
       if (!preChecked) throw new Error('rider B was not pre-checked');
       await a.click(`${todayCard} [data-testid="trip-done-confirm"]`);
-      await a.waitFor(`${todayCard} [data-testid="trip-completed"]`, 20_000);
-      return 'trip done with B pre-checked';
+      // the sheet closes at once; an undo toast holds the ledger write for 10 s, then the trip is recorded
+      await a.waitForText(await undoText(a), 10_000);
+      await a.waitFor(`${todayCard} [data-testid="trip-completed"]`, 30_000);
+      return 'trip done with B pre-checked (undo toast shown, window expired, recorded)';
     });
     await step('ledger-updated', [a, b], async () => {
       // one evaluate() at a time per WebView

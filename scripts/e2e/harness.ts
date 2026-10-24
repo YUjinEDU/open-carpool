@@ -146,7 +146,11 @@ export function openPage(label: string, width: number, height: number, outDir: s
   return page;
 }
 
-export async function signInWithEmailLink(page: Page, origin: string, email: string, next = '/'): Promise<void> {
+/**
+ * Email-link sign-in through the emulator. `name` is required for a first-time user: the app asks for a
+ * name before any group sees the placeholder (RequireAuth gate, or inline on the invite landing).
+ */
+export async function signInWithEmailLink(page: Page, origin: string, email: string, next = '/', name?: string): Promise<void> {
   await page.goto(`${origin}/signin?next=${encodeURIComponent(next)}`);
   await page.fill('[data-testid="signin-email"]', email);
   await page.click('[data-testid="signin-email-submit"]');
@@ -160,6 +164,19 @@ export async function signInWithEmailLink(page: Page, origin: string, email: str
     if (v) finish.searchParams.set(key, v);
   }
   await page.goto(finish.toString());
+  if (name) await passNameGate(page, name);
+}
+
+/** The one-field name prompt: fill it, submit, and wait until it has left the page. */
+export async function passNameGate(page: Page, name: string, timeoutMs = 30_000): Promise<void> {
+  await page.waitFor('[data-testid="name-prompt-input"]', timeoutMs);
+  await page.fill('[data-testid="name-prompt-input"]', name);
+  await page.click('[data-testid="name-prompt-submit"]');
+  const deadline = Date.now() + timeoutMs;
+  while (await page.eval<boolean>('!!document.querySelector(\'[data-testid="name-prompt-input"]\')')) {
+    if (Date.now() > deadline) throw new Error(`name prompt still open at ${await page.eval('location.href')}`);
+    await Bun.sleep(200);
+  }
 }
 
 export interface StepLog { step: string; ok: boolean; detail: string; shots: string[] }

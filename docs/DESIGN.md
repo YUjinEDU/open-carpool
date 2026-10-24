@@ -69,9 +69,10 @@ Semantic tokens only; raw hex never appears outside `src/index.css`. Utilities: 
 | Accent ink | `--accent-ink` | brand-700 (7.6:1 on white) | brand-300 | links, ghost buttons, active tab label, "+" ledger label |
 | Accent wash | `--accent-wash` / `--accent-wash-strong` | brand-50 / brand-100 | #17352A / #1D4536 | selected rows, active tab pill, selected chips |
 | Success | `--success-ink` / `--success-wash` | #1F7352 / #D5ECDF (4.65:1) | #8CD1B0 / #17352A | done badge, success banner |
-| Warn | `--warn-ink` / `--warn-wash` / `--warn-bar` | #8A4B00 / #FCEFD6 (5.98:1) / #E0A23A | #F2B65A / #3A2A10 / #E0A23A | needs-driver badge, in-app browser banner, negative ledger side |
+| Warn | `--warn-ink` / `--warn-wash` / `--warn-bar` | #8A4B00 / #FCEFD6 (5.98:1) / #B8791A (3.1:1 on surface-3) | #F2B65A / #3A2A10 / #E0A23A | needs-driver badge, in-app browser banner, negative ledger side (the bar is a graphic: 3:1 against its track) |
 | Danger | `--danger-ink` / `--danger-wash` / `--danger-solid` | #B3261E / #FBE4E2 (5.38:1) / #C62D26 (5.52:1 with white) | #F28B84 / #3E1C1A / #D8463F | errors, destructive button |
 | Info | `--info-ink` / `--info-wash` | #2B5FB8 / #E1EAF8 (5.05:1) | #8FB4F2 / #17273D | install hint, proposals |
+| On-ink glyphs | `--on-ink-success` / `--on-ink-danger` | brand-300 / #F28B84 (both >= 4.5:1 on `--ink`) | brand-600 / #B3261E | toast icons and the toast action label; the only colours used on the toast's ink surface |
 | Focus | `--focus` | brand-500 | brand-300 | focus-visible ring only |
 | Identity tints | `--tint-1..5-bg/ink` | sage, sand, sky, plum, clay (all >= 7:1) | darker pairs | avatars only, deterministic by name |
 
@@ -84,7 +85,7 @@ Rules
 
 ## 3. Typography
 
-Font: `"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Helvetica Neue", Arial, system-ui, sans-serif`. Pretendard Variable loads from jsDelivr (dynamic subset, `font-display: swap`); self-hosters may delete that `@import` and the stack degrades to the platform Korean font. `font-feature-settings: "calt"`; numbers that are compared or counted down use `tabular-nums`.
+Font: `"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Helvetica Neue", Arial, system-ui, sans-serif`. Pretendard Variable is self-hosted: `src/index.css` imports the dynamic subset from the `pretendard` npm package (92 unicode-range slices, `font-display: swap`) and Vite emits the woff2 files under `/assets`, so no font host appears in the CSP (`font-src 'self'`). Deleting that `@import` degrades the stack to the platform Korean font. `font-feature-settings: "calt"`; numbers that are compared or counted down use `tabular-nums`.
 
 | Utility | Size / line-height / weight | Usage |
 |---|---|---|
@@ -116,12 +117,12 @@ All copy is passed in as props (i18n lives in the feature). All colours and size
 
 | Component | Variants / props | States | A11y |
 |---|---|---|---|
-| Button | primary, secondary, ghost, danger; sm 36 / md 44 / lg 52; loading, fullWidth, leading/trailingIcon | hover (fill shift), active scale 0.98, disabled 45% opacity, loading (spinner replaces icon, label stays, aria-busy) | native button, label is text |
+| Button | primary, secondary, ghost, danger; sm 36 / md 44 / lg 52; loading, loadingLabel (defaults to the label text), fullWidth, leading/trailingIcon | hover (fill shift), active scale 0.98, disabled 45% opacity, loading (spinner replaces icon, label stays, aria-busy) | native button, label is text; sm only inside a 44px row (card headers, input rows), never for a verb |
 | IconButton | ghost, secondary, primary; md 44 / lg 52; `label` required | same | aria-label + title |
 | Card | default (surface + hairline), tonal (surface-2), inverse (evening material); padding none/sm/md/lg; `CardHeader` title/description/action | static | heading level via `as` |
 | List / ListItem | inset or bare; leading, title, description, trailing, chevron, href or onClick, selected, disabled | hover surface-2, active surface-3, selected accent-wash (+ check glyph from caller) | li > a/button/div, aria-current |
 | Input, TextArea, Select, TimeField | label above (hidden option), hint, error, leading/trailing, optionalLabel; TimeField `icon={false}` drops the clock glyph in two-up grids | focus border + 2px ring at 25% focus, invalid danger border, disabled surface-2 | label htmlFor, aria-describedby error then hint, aria-invalid, native pickers |
-| Switch | label + description row, 52x32 track, 26px thumb with check glyph | on (accent, thumb right + check), off, disabled | role=switch, aria-checked, labelledby |
+| Switch | label + description row, 52x32 track, 26px thumb with check glyph; the whole row is the switch button, so the label is part of the 44px target | on (accent, thumb right + check), off, disabled | role=switch on the row, aria-checked, labelledby/describedby; the track is decorative |
 | Checkbox | boxPosition start/end, description | checked (accent fill, white check), focus ring on the drawn box, disabled | native input (sr-only) under a drawn box |
 | SegmentedControl | 2-4 options, md/lg, fullWidth | selected = raised surface | radiogroup, arrow keys, roving tabindex |
 | Chip / ChipGroup | md 44 / sm 36, selected, showCheck, icon; group single or multiple | selected = wash-strong + accent ink + semibold (+ check) | aria-pressed, group aria-label |
@@ -138,7 +139,7 @@ All copy is passed in as props (i18n lives in the feature). All colours and size
 | LedgerBar | value, max, label, name, leading, detail, highlight | ahead (brand-500 right), behind (warn-bar left), zero | role=img "name: label" |
 | ShareButtons | url, title, text, labels, qr slot, code (node), testIds | copied (label swap 2s) | buttons; share only when navigator.share exists; `copyText` is exported for other share flows |
 | QrCode | value, label, size | skeleton while the generator (`qrcode`, lazy chunk) loads | img with alt |
-| Toast | showToast(message, kind) + ToastContainer | enter animation, auto-dismiss 3s | aria-live=polite region, role=status items |
+| Toast | showToast(message, kind, { durationMs, action }) returns an id; dismissToast(id); ToastContainer(dismissLabel) | enter animation; info/success auto-dismiss 3s; error stays until dismissed (X); one action (되돌리기) closes the toast when pressed | aria-live=polite region; items are role=status, errors role=alert; the dismiss control is a labelled IconButton |
 
 Layout primitives used: stack (flex-col gap), cluster (flex-wrap gap-2), scroll-body-shell (`scroll-shell` / `scroll-body` utilities), overlay via native dialog.
 
@@ -150,7 +151,7 @@ Layout primitives used: stack (flex-col gap), cluster (flex-wrap gap-2), scroll-
 | Standard | 220ms in / 180ms out | ease-out-quint / ease-in | Sheet (translateY 16px + fade), Dialog (scale 0.97 + fade), Toast (translateY 8px + fade) |
 | Ambient | 1.4s loop | ease-in-out | Skeleton pulse only |
 
-Feedback thresholds: a press changes the element in the same frame (scale + fill); async actions disable the control at once and show the spinner inside the button; a skeleton is the first paint of any list; a spinner alone only past about one second; success is shown by the changed state (badge flips to 완료, row leaves the list) and a toast only when the outcome is not visible in place; failure is reported next to the object (field error, banner above the list).
+Feedback thresholds: a press changes the element in the same frame (scale + fill); async actions disable the control at once and show the spinner inside the button; a skeleton is the first paint of any list; a spinner alone only past about one second; success is shown by the changed state (badge flips to 완료, row leaves the list) and a toast only when the outcome is not visible in place; failure is reported next to the object (field error, banner above the list, danger Banner inside the dialog that triggered it, with the button re-enabled). Undo window: 운행 완료 holds the ledger transaction for 10 s behind an info toast with 되돌리기 (the toast lives exactly as long as the window); once written, a ledger move is never reversed from the UI.
 
 Rules: only transform, opacity and colour animate; no scroll listeners; no permanent loops besides skeleton; nothing moves under a pointer; exit mirrors entry (the dialog hook animates close on Esc, backdrop tap and programmatic close); under `prefers-reduced-motion` every keyframe becomes a cross-fade and press scale is removed (`motion-reduce:`), fades and the spinner stay.
 
@@ -201,7 +202,7 @@ Each screen: purpose, layout top to bottom, components, primary action, states, 
 - Purpose: tonight's answer in one glance; the two absence verbs one tap away.
 - Layout: TopBar group switcher + share IconButton; **Evening card** (Card inverse, padding lg): label "내일 아침" / "Tomorrow morning" (or "오늘 저녁 퇴근" for the back leg, "오늘 아침" before departure), date + time, driver Avatar lg with marker + headline "박서연 님이 운전해요" / "Seoyeon drives", pickup line with MapPin, rider AvatarStack + names in a wash row, cutoff countdown ("변경 마감까지 2시간 14분 (오늘 21:00 마감)" / "2h 14m until changes close (21:00 today)"), then a 2-column button row: rider view = secondary "내일 못 가요" + ghost "크루 보기"; driver view = secondary "운전 못 해요" + ghost "크루 보기"; after departure time the driver view shows primary "운행 완료" / "Mark trip done" instead. **This week** Card: CardHeader "이번 주" + ghost "주간 계획"; List of the next 5 trips (leading day cell with wash on the next trip, title "박서연 운전", description "07:40 출발", trailing status Badge). **My crews** Card: one ListItem per crew (AvatarStack, name, members + captain, status Badge, chevron). Members of no crew see the crew EmptyState instead.
 - Components: TopBar, Card inverse, Avatar, AvatarStack, Badge, Button, List, ListItem, EmptyState, BottomNav.
-- Primary action: whichever absence verb applies now; after departure, 운행 완료.
+- Primary action: whichever absence verb applies now. 운행 완료 is offered only from the leg's departure time on the trip date (all day for a leg without a time); from then the driver sees secondary 운전 못 해요 and primary 운행 완료 side by side, with 크루 보기 as a centred ghost link below. After 못 가요 / 운전 넘기기 / 운전할게요, a success Banner states what happened and offers 크루에 알리기 (Web Share, copy fallback) because nothing is pushed to the crew.
 - States: loading = inverse card skeleton (title line + two rows) and list skeletons; no crew = evening card replaced by Card tonal "아직 크루가 없어요. 멤버를 보고 첫 크루를 제안해 보세요." + primary "크루 제안하기" / "Propose a crew"; no trip tomorrow = inverse card says "내일은 운행이 없어요" / "No trip tomorrow" with the next planned date in sub; needs driver = card header Badge warn "운전자 필요" and headline "운전할 사람이 필요해요" / "Nobody is driving yet", primary "제가 운전할게요" / "I will drive"; past cutoff = buttons replaced by caption "변경 마감이 지났어요. 급하면 크루에 직접 알려 주세요." / "Changes are closed. Tell your crew directly if it is urgent."; offline = Banner warn at the top "오프라인이에요. 마지막으로 본 계획을 보여 드려요." / "You are offline; showing the last plan."
 - Copy: "내일 못 가요" / "Can't go tomorrow", "운전 못 해요" / "Can't drive", "운행 완료" / "Trip done", "주간 계획" / "Weekly plan", "크루 보기" / "View crew".
 
@@ -222,7 +223,7 @@ Each screen: purpose, layout top to bottom, components, primary action, states, 
 ### Trip completion (Sheet from Home or Crew)
 - Purpose: one tap to record the trip; the roster is pre-checked.
 - Layout: SheetPanel title "운행 완료" / "Trip done", description "탑승하지 않은 사람은 체크를 해제하세요." / "Uncheck anyone who did not ride."; summary row (driver Avatar + "운전 박서연" + date/time, trailing "탑승 3명"); roster List: Avatar + Checkbox (boxPosition end, checked by default, the absent members pre-unchecked and listed last with description "결석"); optional TextArea 메모 for actual-cost groups only (금액 Input, currency from policy); footer: primary lg fullWidth "완료 기록" / "Record trip" + caption "기록하면 장부가 바로 갱신돼요." / "The ledger updates right away."
-- Primary action: 완료 기록 (loading state, then the sheet closes and the Home card shows Badge success 완료; toast only if the user is not looking at the card).
+- Primary action: 완료 기록 closes the sheet at once and shows the info toast "운행 완료를 기록해요. 10초 안에 되돌릴 수 있어요." with 되돌리기; the ledger transaction runs when the toast expires, then the card shows Badge success 완료 (toast "운행을 기록했어요" only if the user is not looking at the card). 되돌리기 cancels before anything is written.
 - States: already recorded = Sheet body says "이미 기록된 운행이에요" with the recorded roster read-only; failure = Banner danger inside the sheet above the footer, button re-enabled.
 
 ### Absence / swap (Sheet)
@@ -238,7 +239,7 @@ Each screen: purpose, layout top to bottom, components, primary action, states, 
 
 ### Member profile and weekly schedule editor (`/g/:gid/profile`, `/g/:gid/members/:uid`)
 - Purpose: the two things crews are built from: area and schedule.
-- Layout: TopBar back + "내 프로필" / "My profile"; Avatar xl + Input 표시 이름; Card "출발 지역": search Input with result List (stores rounded coordinates + label), caption "정확한 주소는 다른 멤버에게 보이지 않아요." / "Your exact address is never shown to others."; Card "운전": Switch "운전할 수 있어요" / "I can drive", Input 좌석 (numeric) and Input 차량 번호 끝자리 (numeric, only when plateRotation is on); Card "평소 일정": ChipGroup weekdays (multiple, no check glyph), then per selected day a row with two TimeFields 출발 / 복귀 and a ghost "모든 평일 같게" / "Same for all weekdays" shortcut; footer primary "저장" / "Save" (sticky above BottomNav).
+- Layout: TopBar back + "내 프로필" / "My profile"; Avatar xl + Input 표시 이름; Card "출발 지역": search Input with result List (stores rounded coordinates + label), caption "정확한 주소는 다른 멤버에게 보이지 않아요. 동·구 이름과 약 100m 단위 위치만 저장돼요." / "Your exact address is never shown to others; only the district name and a location rounded to about 100 m are stored." (the chosen address is reduced to its administrative units by `coarseLabel` before it is shown or stored: "대전광역시 유성구 대학로 99" becomes "대전광역시 유성구"); Card "운전": Switch "운전할 수 있어요" / "I can drive", Input 좌석 (numeric) and Input 차량 번호 끝자리 (numeric, only when plateRotation is on); Card "평소 일정": ChipGroup weekdays (multiple, no check glyph), then per selected day a row with two TimeFields 출발 / 복귀 and a ghost "모든 평일 같게" / "Same for all weekdays" shortcut; footer primary "저장" / "Save" (sticky above BottomNav).
 - Components: Input, Switch, ChipGroup, TimeField, List, Avatar, Button.
 - States: unsaved changes guard Dialog on back ("저장하지 않은 변경이 있어요" / "You have unsaved changes", actions "계속 수정" / "나가기"); save loading; validation ("출근 요일을 하나 이상 고르세요" / "Pick at least one day").
 - Viewing another member shows the same layout read-only without the exact area (label only) and with their crews listed.
@@ -285,7 +286,7 @@ Constraints (WCAG 2.2 AA)
 - Targets: 44x44px minimum for every control, 8px between neighbours; rows are 56px; chips 44px; sm buttons only inside 44px rows.
 - Focus: 2px `--focus` ring with 2px offset on every interactive element (global `:focus-visible`), inputs show border + 25% ring; focus order equals reading order; modals focus their panel first so Enter never activates a button by accident.
 - Keyboard: Esc closes the top modal; segmented controls and chip groups use arrow keys or Tab; every gesture (sheet swipe) has a visible close control.
-- Screen readers: every input has a label, icon-only buttons require `label`, avatars and bars are named images, toasts live in a polite live region, banners are status or alert by severity.
+- Screen readers: every input has a label, icon-only buttons require `label`, avatars and bars are named images, toasts live in a polite live region (error toasts are `role="alert"` and stay until dismissed), banners are status or alert by severity, error text is a plain sentence in the UI language (never SDK text), and the Home switcher keeps the group name in the page's h1.
 - Motion: every animation has a reduced-motion path (cross-fade); no autoplay media; skeleton is static under reduced motion.
 - Language: `<html lang>` follows the active locale so `:lang(ko)` word-break rules and screen-reader voices apply.
 - Zoom: index.html must allow user scaling (remove `maximum-scale=1.0, user-scalable=no`) and add `viewport-fit=cover`.
@@ -294,7 +295,8 @@ Accepted debt
 | Item | Location | Why accepted | Owner / exit |
 |---|---|---|---|
 | Dark theme follows the OS by default (`system`), with a system / light / dark control under 내 계정 (`src/app/theme.ts`, stored in localStorage) | src/index.css, src/app/theme.ts | Home and Crew detail were QA'd in dark (docs/screenshots/*-dark.png); the remaining screens share the same tokens but were only reviewed in light | Review the rest in dark during the next visual QA round |
-| Pretendard loads from jsDelivr | src/index.css | Fast to ship; platform Korean fonts are the fallback | Self-host under public/fonts before the open-source release (U6) |
+| A proposed crew cannot be edited in place (name, days, times); the captain withdraws and proposes again | src/features/crews/CrewPage.tsx | Rules already allow the captain's settings edit (`isCrewSettingsEdit`); the edit form is UI work with no new data path | Add a crew edit sheet (UX review U-04 follow-up) |
+| The owner cannot leave or delete a group (no danger zone on Group settings) | src/features/groups/SettingsPage.tsx, firestore.rules | Ownership transfer and a cascading delete need new rules and a reviewed data path; the current rules deny both on purpose (S-06) | Rules + UI in one reviewed change (UX review U-11) |
 | Sheet has no drag-to-dismiss gesture | src/shared/ui/Sheet.tsx | Close control, backdrop tap and Esc cover dismissal | Add gesture later if users expect it |
 | Native `<input type="time">` renders AM/PM in ko on some browsers | TimeField | Platform behaviour; values stay HH:MM | None planned |
 | Legacy token aliases (`primary-container`, `on-surface`, ...) remain in index.css | src/index.css | src/screens still uses them | Delete with src/screens (U3) |
@@ -305,12 +307,12 @@ The screens follow the specs above with these deliberate differences, each visib
 
 - **Shell**: each page renders its own `TopBar` and a `PageBody` (`src/app/shell/PageBody.tsx`, `nav` adds `pb-safe-nav`); `GroupLayout` adds the fixed `BottomNav` and the More sheet (profile, settings and admin for admins, account, my groups, leave group). The document is the only scroll owner; `ScrollReset` scrolls new screens to the top. More is a sheet, not a route.
 - **New crew** is a page mode of `/g/:gid/crews` (TopBar back), not a sheet: the member list, weekday chips and two time fields are too long for a sheet on a phone.
-- **Trip rows** on Crew detail carry their verbs inline as small buttons (못 가요 / 갈게요, 운전 못 해요, 제가 운전할게요, 운행 완료); the absence, hand-over and volunteer verbs confirm in an `alertdialog` (`TripActionBar`) instead of the absence Sheet, and completion opens the roster Sheet (`CompleteSheet`) from both Home and Crew detail.
-- **Group create** lands on Group settings (the invite card is first) rather than Home; Home shows the three getting-started items as a tonal card for an owner who is still alone.
+- **Trip rows** on Crew detail carry their verbs inline as md (44px) buttons (못 가요 / 갈게요, 운전 못 해요, 제가 운전할게요, 운행 완료); the absence, hand-over and volunteer verbs confirm in an `alertdialog` (`TripActionBar`) instead of the absence Sheet, and completion opens the roster Sheet (`CompleteSheet`) from both Home and Crew detail.
+- **Group create** replaces the wizard in history and lands on Home with the "그룹을 만들었어요" invite sheet open (QR, code, copy, share), so the back arrow never returns to an empty wizard; Home shows the three getting-started items as a tonal card for an owner who is still alone, and every "propose a crew" entry (Home card, Crews empty state, the + in the Crews TopBar) opens the invite link until the group has two active members.
 - **Evening digest** is a dismissable info Banner on Home from 18:00 (group zone) when tomorrow has trips, mirrored by one local Notification per day for members who opted in under 내 계정 (`src/app/notifications.ts`); background push needs a server and is stated in the opt-in copy.
 - **Churn** shows the captain a warn Banner on Crew detail when `domain/churn` reports declining or stalled, with the at-risk names and a link to the crews page.
 - **Plate rule**: a trip row shows the info Badge 부제 적용 when the group's plate rotation excluded a driver that day (names in the title attribute).
-- Deep-link previews without sign-in and the first-time captain Sheet are not built; `/join/:code` requires sign-in first (router guard).
+- `/join/:code` works signed out: the shared link carries the group name (`?name=`, display only, verified after sign-in), the Sign-in block renders inline under the invite card, and a first-time email-link user is asked for a name (`NameForm`) before 참여하기, so the placeholder "멤버" never reaches a member document. Inside an in-app browser (KakaoTalk, LINE, ...) 외부 브라우저로 열기 is the lg primary action. Already-member and removed states render as Banners on the page. The first-time captain Sheet is the post-create invite sheet above.
 
 ## Implementation notes for workers
 
