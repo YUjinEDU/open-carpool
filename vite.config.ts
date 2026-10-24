@@ -29,7 +29,6 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api/naver/geocode': naverProxy('/api/naver/geocode', '/map-geocode/v2/geocode', env),
         '/api/naver/reverse-geocode': naverProxy('/api/naver/reverse-geocode', '/map-reversegeocode/v2/gc', env),
-        '/api/naver/directions': naverProxy('/api/naver/directions', '/map-direction/v1/driving', env),
       },
     },
     preview: {
