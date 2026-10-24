@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { showToast } from '../../components/Toast';
+import { showToast } from '../ui';
 import { InviteNotFoundError, MembershipRemovedError } from '../../data/groups';
 import { CarFullError, SeatsBelowRidersError } from '../../data/events';
 import { DriverTakenError, TripAlreadyAppliedError } from '../../data/trips';

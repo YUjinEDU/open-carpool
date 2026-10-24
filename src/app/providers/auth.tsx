@@ -1,6 +1,6 @@
 import type { User } from 'firebase/auth';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { showToast } from '../../components/Toast';
+import { showToast } from '../../shared/ui';
 import { upsertProfile } from '../../data/users';
 import type { UserProfile } from '../../domain/types';
 import { ensureUserProfile, onAuthChange } from '../../features/auth/authService';

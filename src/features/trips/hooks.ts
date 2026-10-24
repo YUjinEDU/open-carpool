@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useGroup } from '../../app/providers/group';
-import { showToast } from '../../components/Toast';
+import { showToast } from '../../shared/ui';
 import { subscribeTrips, type DateRange } from '../../data/trips';
 import { addDays, DEFAULT_TZ, today } from '../../domain/dates';
 import type { PlanInput } from '../../domain/planning';
