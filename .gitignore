@@ -9,3 +9,8 @@ coverage/
 .vercel
 *Zone.Identifier
 .omo/
+.senpi/
+.serena/
+firebase-debug.log
+firestore-debug.log
+*-debug.log

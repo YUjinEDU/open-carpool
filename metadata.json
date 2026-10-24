@@ -1,7 +1,0 @@
-{
-  "name": "CNU 교직원 카풀",
-  "description": "충남대학교 교직원을 위한 스마트 경로 매칭 카풀 서비스. 운전자의 경로와 탑승자의 도보 반경을 분석하여 최적의 픽업 지점을 제안합니다.",
-  "requestFramePermissions": [
-    "geolocation"
-  ]
-}

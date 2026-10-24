@@ -2,15 +2,22 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig(({mode}) => {
+const naverProxy = (route: string, upstreamPath: string, env: Record<string, string>) => ({
+  target: 'https://maps.apigw.ntruss.com',
+  changeOrigin: true,
+  rewrite: (p: string) => `${upstreamPath}${p.replace(route, '')}`,
+  headers: {
+    'X-NCP-APIGW-API-KEY-ID': env.VITE_NAVER_CLIENT_ID || '',
+    'X-NCP-APIGW-API-KEY': env.NAVER_CLIENT_SECRET || '',
+  },
+});
+
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
@@ -18,46 +25,23 @@ export default defineConfig(({mode}) => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
+      // Dev-only mirror of the Vercel functions in api/naver/*.
       proxy: {
-        '/api/naver/directions': {
-          target: 'https://maps.apigw.ntruss.com',
-          changeOrigin: true,
-          rewrite: (p) => `/map-direction/v1/driving${p.replace('/api/naver/directions', '')}`,
-          headers: {
-            'X-NCP-APIGW-API-KEY-ID': env.VITE_NAVER_CLIENT_ID || '',
-            'X-NCP-APIGW-API-KEY': env.NAVER_CLIENT_SECRET || '',
-          },
-        },
-        '/api/naver/geocode': {
-          target: 'https://maps.apigw.ntruss.com',
-          changeOrigin: true,
-          rewrite: (p) => `/map-geocode/v2/geocode${p.replace('/api/naver/geocode', '')}`,
-          headers: {
-            'X-NCP-APIGW-API-KEY-ID': env.VITE_NAVER_CLIENT_ID || '',
-            'X-NCP-APIGW-API-KEY': env.NAVER_CLIENT_SECRET || '',
-          },
-        },
-        '/api/naver/reverse-geocode': {
-          target: 'https://maps.apigw.ntruss.com',
-          changeOrigin: true,
-          rewrite: (p) => `/map-reversegeocode/v2/gc${p.replace('/api/naver/reverse-geocode', '')}`,
-          headers: {
-            'X-NCP-APIGW-API-KEY-ID': env.VITE_NAVER_CLIENT_ID || '',
-            'X-NCP-APIGW-API-KEY': env.NAVER_CLIENT_SECRET || '',
-          },
-        },
+        '/api/naver/geocode': naverProxy('/api/naver/geocode', '/map-geocode/v2/geocode', env),
+        '/api/naver/reverse-geocode': naverProxy('/api/naver/reverse-geocode', '/map-reversegeocode/v2/gc', env),
+        '/api/naver/directions': naverProxy('/api/naver/directions', '/map-direction/v1/driving', env),
       },
     },
     preview: {
       host: '0.0.0.0',
       port: 4173,
       strictPort: true,
-      // Temporary demo mode: allow tunnel hosts to reach vite preview.
-      allowedHosts: true,
     },
     test: {
       globals: true,
       environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
+      include: ['src/**/*.test.{ts,tsx}', 'api/**/*.test.ts'],
     },
   };
 });

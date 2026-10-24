@@ -1,20 +1,16 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# open-carpool
 
-# Run and deploy your AI Studio app
+Carpool operations tool for groups that already know each other (companies, universities, clubs, school parents).
+Fixed crews, fair driver rotation, one-tap ride logs and admin reports. Not a stranger-matching app.
 
-This contains everything you need to run your app locally.
+Status: v1 in development on the `develop` branch. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
-View your app in AI Studio: https://ai.studio/apps/7f4c3161-7cbf-421f-9441-6bbb296c2fe7
+## Develop
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+cp .env.example .env.local   # fill in values
+npm run dev
+npm test          # unit tests
+npm run test:rules  # Firestore security rules (needs Java 21+ for the Firebase emulators)
+```
