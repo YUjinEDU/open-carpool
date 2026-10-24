@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { geocoderFor, geocoderKindFor, ManualGeocoder, NaverGeocoder, parseNaverGeocode, roundLatLng, toPlace } from './geocoder';
+import { coarseLabel, geocoderFor, geocoderKindFor, ManualGeocoder, NaverGeocoder, parseNaverGeocode, roundLatLng, toPlace } from './geocoder';
 
 const noKeys = { naverClientId: '', googleMapsApiKey: '' };
 const allKeys = { naverClientId: 'naver-id', googleMapsApiKey: 'google-key' };
@@ -35,6 +35,36 @@ describe('coordinates', () => {
   it('turns a manual entry into a label-only place', async () => {
     const [hit] = await ManualGeocoder.geocode('  Main St office ');
     expect(toPlace(hit)).toEqual({ label: 'Main St office', point: null });
+  });
+});
+
+describe('coarseLabel (S-04)', () => {
+  it.each([
+    ['대전광역시 유성구 대학로 99', '대전광역시 유성구'],
+    ['경기도 성남시 분당구 백현동 532', '경기도 성남시 분당구 백현동'],
+    ['서울특별시 강남구 테헤란로 152 (역삼동, 강남파이낸스센터)', '서울특별시 강남구 역삼동'],
+    ['경기도 성남시 분당구 판교역로 166 (백현동)', '경기도 성남시 분당구 백현동'],
+    ['서울특별시 강남구 삼성로 95길 23 (삼성2동)', '서울특별시 강남구 삼성2동'],
+    ['세종특별자치시 한누리대로 2130', '세종특별자치시'],
+    ['1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA', 'Mountain View, USA'],
+    ['판교역 1번 출구', '판교역'],
+    ['분당구 정자동', '분당구 정자동'],
+    ['  ', ''],
+  ])('reduces %s to %s', (full, coarse) => {
+    expect(coarseLabel(full)).toBe(coarse);
+  });
+
+  it('is idempotent, so labels stored as street addresses are shown coarse too', () => {
+    for (const full of ['대전광역시 유성구 대학로 99', '서울특별시 강남구 테헤란로 152 (역삼동)', '1600 Amphitheatre Pkwy, Mountain View, CA 94043, USA']) {
+      const once = coarseLabel(full);
+      expect(coarseLabel(once)).toBe(once);
+    }
+  });
+
+  it('never keeps a building number or a road name', () => {
+    for (const full of ['대전광역시 유성구 대학로 99', '경기도 성남시 분당구 판교역로 166 (백현동, 카카오)', '부산광역시 해운대구 센텀중앙로 79']) {
+      expect(coarseLabel(full)).not.toMatch(/\d|로$|길$/);
+    }
   });
 });
 

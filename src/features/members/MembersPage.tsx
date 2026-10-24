@@ -9,6 +9,7 @@ import { removeMember, setMemberRole } from '../../data/members';
 import type { Member } from '../../domain/types';
 import { useAction } from '../../shared/lib/useAction';
 import { Avatar, Badge, Button, Dialog, EmptyState, IconButton, Input, List, ListItem, Select, Sheet, Skeleton, TopBar } from '../../shared/ui';
+import { coarseLabel } from '../map/geocoder';
 import { useMembers } from './hooks';
 
 type AssignableRole = 'admin' | 'member';
@@ -44,7 +45,7 @@ export function MembersPage() {
   }, [active, query]);
   const canManage = (m: Member) => isAdmin && m.uid !== me.uid && m.role !== 'owner';
   const description = (m: Member) =>
-    [m.areaLabel || t('members.noArea'), m.canDrive ? t('members.driver', { seats: m.seats }) : t('members.rider')].join(' · ');
+    [coarseLabel(m.areaLabel) || t('members.noArea'), m.canDrive ? t('members.driver', { seats: m.seats }) : t('members.rider')].join(' · ');
   const roleBadge = (m: Member) =>
     m.role === 'owner' ? <Badge variant="brand">{t('role.owner')}</Badge> : m.role === 'admin' ? <Badge variant="brand">{t('role.admin')}</Badge> : undefined;
 
@@ -82,7 +83,7 @@ export function MembersPage() {
           />
         )}
         {members.status === 'ready' && active.length > 1 && shown.length === 0 && <EmptyState compact title={t('members.searchEmpty')} />}
-        {members.status === 'ready' && shown.length > 0 && (
+        {members.status === 'ready' && active.length > 1 && shown.length > 0 && (
           <List data-testid="member-list">
             {shown.map((m) => (
               <ListItem

@@ -10,7 +10,7 @@ import type { Weekday } from '../../domain/types';
 import { useAction } from '../../shared/lib/useAction';
 import { Avatar, Button, Card, CardHeader, ChipGroup, Dialog, Input, Switch, TimeField, TopBar, showToast } from '../../shared/ui';
 import { isDefaultDisplayName } from '../auth/authService';
-import { roundLatLng, type Place } from '../map/geocoder';
+import { coarseLabel, roundLatLng, type Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
 import { fromDraft, toDraft, weekdayName, WEEKDAYS, type DayDraft, type ScheduleDraft } from './schedule';
 
@@ -52,7 +52,8 @@ export function ProfilePage() {
       canDrive,
       seats: canDrive ? seats : 0,
       plateLastDigit: usesPlate && plate !== '' ? Number(plate) : me.plateLastDigit,
-      areaLabel: area?.label ?? '',
+      // S-04: other members only ever see the district (and a ~100 m point); the street address is never stored.
+      areaLabel: area ? coarseLabel(area.label) : '',
       area: area?.point ? roundLatLng(area.point) : null,
       schedule: fromDraft(schedule),
     });
@@ -120,7 +121,16 @@ export function ProfilePage() {
           <Card as="section">
             <CardHeader title={t('profile.area')} />
             <div className="mt-3">
-              <PlaceSearch id="profile-area" label={t('profile.area')} labelHidden hint={t('profile.areaHint')} country={group.country} value={area} onChange={setArea} />
+              <PlaceSearch
+                id="profile-area"
+                label={t('profile.area')}
+                labelHidden
+                hint={t('profile.areaHint')}
+                country={group.country}
+                value={area}
+                // The chip shows what the group will see: the coarse label, not the picked street address.
+                onChange={(place) => setArea(place && { label: coarseLabel(place.label), point: place.point })}
+              />
             </div>
           </Card>
 

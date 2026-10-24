@@ -31,6 +31,39 @@ export class GeocodeError extends Error {
 export const roundCoord = (value: number): number => Math.round(value * 1000) / 1000;
 export const roundLatLng = ({ lat, lng }: LatLng): LatLng => ({ lat: roundCoord(lat), lng: roundCoord(lng) });
 
+/** Korean administrative units, largest to smallest; a road address stops being coarse at the road name. */
+const ADMIN_UNIT = /(특별시|광역시|특별자치시|특별자치도|도|시|군|구|동|읍|면|리|\d가)$/;
+const DONG_LEVEL = /(동|읍|면|리|\d가)$/;
+const ROAD = /(대로|로|길)$/;
+const hasDigit = (token: string): boolean => /\d/.test(token);
+
+/**
+ * S-04: the only form of a home address other members may see. A Korean address keeps its administrative
+ * units (시/도, 시/군/구, 동/읍/면/리; the 법정동 in a road address's parentheses counts) and drops the road
+ * name, building number and building name. A comma-separated (Google) address drops every component that
+ * carries a number (house number, postal code). Anything else is cut at its first number. Idempotent, so
+ * labels stored before this rule existed are coarsened the same way when displayed.
+ */
+export function coarseLabel(label: string): string {
+  const trimmed = label.replace(/\s+/g, ' ').trim();
+  if (!trimmed) return '';
+  const paren = /\(([^)]*)\)/.exec(trimmed);
+  const parenDong = (paren?.[1] ?? '').split(',')[0]?.trim() ?? '';
+  const body = trimmed.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (body.includes(',')) {
+    return body
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part && !hasDigit(part))
+      .join(', ');
+  }
+  const tokens = body.split(' ');
+  const cut = tokens.findIndex((token) => ROAD.test(token) || (hasDigit(token) && !ADMIN_UNIT.test(token)));
+  const kept = cut === -1 ? tokens : cut === 0 ? tokens.filter((token) => !hasDigit(token)) : tokens.slice(0, cut);
+  if (DONG_LEVEL.test(parenDong) && !kept.some((token) => DONG_LEVEL.test(token))) kept.push(parenDong);
+  return kept.join(' ');
+}
+
 export const toPlace = ({ label, lat, lng }: GeocodeResult): Place => ({
   label,
   point: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
