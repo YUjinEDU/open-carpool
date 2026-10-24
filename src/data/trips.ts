@@ -102,7 +102,10 @@ export async function completeTrip(
     const crew = crewSnap.data();
     const trip = tripSnap.data();
     if (trip.applied) throw new TripAlreadyAppliedError(tripId);
-    const riderIds = [...new Set(completion.riderIds)].filter((id) => id !== completion.driverId);
+    // A frozen trip can still name someone who has since left the crew; only current members move.
+    const riderIds = [...new Set(completion.riderIds)].filter(
+      (id) => id !== completion.driverId && crew.memberIds.includes(id),
+    );
     const scores = applyTrip(crew.scores, completion.driverId, riderIds);
     tx.update(tripRef(gid, cid, tripId), {
       status: 'done',

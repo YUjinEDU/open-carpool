@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Crew, Trip } from '../../domain/types';
 import { formatDate } from '../../shared/lib/format';
@@ -19,10 +19,12 @@ export interface CompleteSheetProps {
 /** "Who rode?" bottom sheet: present riders pre-checked, absent members last and unchecked. */
 export function CompleteSheet({ open, onClose, crew, trip, names, meUid, busy, onConfirm }: CompleteSheetProps) {
   const { t, i18n } = useTranslation();
-  const [riders, setRiders] = useState<readonly string[]>(trip.riderIds);
+  // Seed only riders still in the crew: the roster below renders crew.memberIds, so anyone else would be submitted unseen.
+  const seed = useMemo(() => trip.riderIds.filter((uid) => crew.memberIds.includes(uid)), [trip.riderIds, crew.memberIds]);
+  const [riders, setRiders] = useState<readonly string[]>(seed);
   useEffect(() => {
-    if (open) setRiders(trip.riderIds);
-  }, [open, trip.riderIds]);
+    if (open) setRiders(seed);
+  }, [open, seed]);
 
   const name = (uid: string) => names.get(uid) ?? uid;
   const roster = crew.memberIds

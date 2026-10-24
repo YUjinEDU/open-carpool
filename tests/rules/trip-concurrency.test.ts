@@ -9,7 +9,8 @@ import type { Trip } from '../../src/domain/types';
 vi.stubEnv('VITE_USE_FIREBASE_EMULATOR', 'true');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', '');
 
-const { auth } = await import('../../src/firebase');
+const { auth, db } = await import('../../src/firebase');
+const { doc, setDoc } = await import('firebase/firestore');
 const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } = await import('firebase/auth');
 const groups = await import('../../src/data/groups');
 const members = await import('../../src/data/members');
@@ -112,5 +113,21 @@ describe('planner writes from a stale snapshot', () => {
     await syncCrewPlan({ gid, plan: await planFor(gid, cid, stale) });
 
     expect(await tripOn(gid, cid, `${TUE}_out`)).toMatchObject({ driverId: volunteer, status: 'planned' });
+  });
+});
+
+describe('completion', () => {
+  it('completes a trip whose frozen riders include someone who left the crew, moving only crew members', async () => {
+    const { gid, cid } = await activeCrew();
+    const id = `${MON}_out`;
+    await setDoc(doc(db, 'groups', gid, 'crews', cid, 'trips', id), {
+      date: MON, leg: 'out', driverId: uids.ann, riderIds: [uids.ben, 'gone-member'], absentIds: [],
+      status: 'planned', applied: false, completedBy: null, completedAt: null, cost: null,
+    });
+
+    const scores = await trips.completeTrip(gid, cid, id, { driverId: uids.ann, riderIds: [uids.ben, 'gone-member'] }, uids.ann);
+
+    expect(scores).toEqual({ [uids.ann]: 30, [uids.ben]: -30 });
+    expect((await tripOn(gid, cid, id))?.riderIds).toEqual([uids.ben]);
   });
 });
