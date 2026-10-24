@@ -24,8 +24,8 @@ export function isPastCutoff(tripDate: string, cutoffHour: number, now: Date, tz
 export const tripId = (date: string, leg: Leg): string => `${date}_${leg}`;
 
 /**
- * Plan trips for the crew's weekdays in [from, from + days). Done, cancelled and frozen trips are
- * returned unchanged. Driver choice simulates the ledger forward so a multi-day plan rotates
+ * Plan trips for the crew's weekdays in [from, from + days). Done and frozen trips are returned
+ * unchanged; a cancelled trip (its day had been removed from the crew) is planned again before the cutoff. Driver choice simulates the ledger forward so a multi-day plan rotates
  * instead of naming the same lowest-score driver every day. A driver already set on an open trip
  * (volunteer or previous plan) is kept while still present and eligible.
  */
@@ -50,7 +50,7 @@ export function planTrips({ crew, members, from, days, existing, now, tz = DEFAU
     for (const leg of legs) {
       const id = tripId(date, leg);
       const prev = existingById.get(id);
-      if (prev && (prev.status === 'done' || prev.status === 'cancelled' || isPastCutoff(date, policy.absenceCutoffHour, now, tz))) {
+      if (prev && (prev.status === 'done' || isPastCutoff(date, policy.absenceCutoffHour, now, tz))) {
         trips.push(prev);
         project(prev);
         continue;

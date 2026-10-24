@@ -1,10 +1,17 @@
 import { upsertPlannedTrips } from '../../data/trips';
+import { addDays } from '../../domain/dates';
 import { planTrips, type PlanInput } from '../../domain/planning';
 import type { Trip } from '../../domain/types';
 import { tripsToWrite } from './reconcile';
 
-/** Trips the planner would write for `plan`, judged against `plan.existing`. */
-export const plannedWrites = (plan: PlanInput): Trip[] => tripsToWrite(planTrips(plan), plan.existing);
+/**
+ * Trips the planner would write for `plan`, judged against `plan.existing`. Only an active crew is
+ * planned: a paused or re-proposed crew keeps its trips as they are.
+ */
+export const plannedWrites = (plan: PlanInput): Trip[] =>
+  plan.crew.status === 'active'
+    ? tripsToWrite(planTrips(plan), plan.existing, { from: plan.from, to: addDays(plan.from, plan.days - 1) })
+    : [];
 
 export interface CrewPlanSync {
   readonly gid: string;

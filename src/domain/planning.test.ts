@@ -103,12 +103,18 @@ describe('planTrips', () => {
     const [mon] = planTrips(input({ existing }));
     expect(mon).toMatchObject({ driverId: null, status: 'needs_driver', riderIds: ['c'], absentIds: ['a', 'b'] });
   });
-  it('returns done and cancelled trips untouched', () => {
+  it('returns done trips and cancelled trips past the cutoff untouched', () => {
     const done = trip(MON, { status: 'done', driverId: 'c', riderIds: ['a'], applied: true });
     const cancelled = trip('2026-10-27', { status: 'cancelled' });
-    const trips = planTrips(input({ existing: [done, cancelled] }));
+    const now = new Date('2026-10-26T12:00:00Z'); // Mon 21:00 KST: Tuesday is frozen
+    const trips = planTrips(input({ existing: [done, cancelled], now }));
     expect(trips[0]).toBe(done);
     expect(trips[1]).toBe(cancelled);
+  });
+  it('replans a cancelled trip of a scheduled day before the cutoff', () => {
+    const cancelled = trip('2026-10-27', { status: 'cancelled', driverId: 'b', riderIds: ['a', 'c'] });
+    const [, tue] = planTrips(input({ existing: [cancelled] }));
+    expect(tue).toMatchObject({ status: 'planned', driverId: 'b', riderIds: ['a', 'c'] });
   });
   it('keeps an existing driver while still present and eligible', () => {
     const existing = [trip(MON, { driverId: 'b', riderIds: ['a', 'c'] })];
