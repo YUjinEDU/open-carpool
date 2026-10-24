@@ -19,7 +19,7 @@ export interface UserProfile {
   createdAt: string; // ISO timestamp
 }
 
-export type GroupType = 'company' | 'campus' | 'club' | 'school' | 'church' | 'other';
+export type GroupType = 'company' | 'university' | 'club' | 'school' | 'church' | 'other';
 export type CostMode = 'rotation' | 'actual-cost';
 export type PlateRotation = 'none' | 'odd-even' | 'five-day';
 

@@ -1,0 +1,141 @@
+{
+  "app": { "name": "open-carpool" },
+  "nav": {
+    "me": "내 계정",
+    "group": "그룹 메뉴",
+    "home": "홈",
+    "crews": "크루",
+    "events": "행사",
+    "members": "멤버",
+    "profile": "내 프로필",
+    "settings": "설정",
+    "admin": "관리",
+    "provider": {
+      "title": "길안내 열기",
+      "naver": "네이버 지도",
+      "kakao": "카카오맵",
+      "google": "Google 지도"
+    }
+  },
+  "common": {
+    "loading": "불러오는 중…",
+    "unexpected": "문제가 발생했습니다",
+    "reload": "새로고침",
+    "dismiss": "닫기",
+    "errorWith": "오류: {{message}}",
+    "saved": "저장했습니다",
+    "save": "저장",
+    "adminsOnly": "그룹 관리자만 볼 수 있습니다.",
+    "comingSoon": "준비 중입니다."
+  },
+  "auth": { "profileError": "프로필을 불러오지 못했습니다. 새로고침해 주세요." },
+  "notFound": { "title": "페이지를 찾을 수 없습니다", "home": "내 그룹으로" },
+  "pwa": { "iosHint": "Safari 공유 버튼에서 '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있습니다." },
+  "signin": {
+    "title": "로그인",
+    "subtitle": "그룹 카풀을 운영하고 참여하세요.",
+    "inApp": {
+      "message": "앱 안의 브라우저에서는 Google 로그인이 막힐 수 있습니다.",
+      "open": "외부 브라우저로 열기",
+      "manual": "메뉴에서 '다른 브라우저로 열기'를 선택해 주세요."
+    },
+    "google": "Google로 계속하기",
+    "kakao": "카카오로 계속하기",
+    "emailLabel": "이메일",
+    "emailSubmit": "로그인 링크 받기",
+    "emailSent": "{{email}}로 로그인 링크를 보냈습니다. 메일함을 확인하세요."
+  },
+  "signinFinish": {
+    "title": "로그인 완료",
+    "working": "로그인하는 중…",
+    "needsEmail": "다른 기기에서 링크를 열었습니다. 링크를 받은 이메일을 입력하세요.",
+    "submit": "로그인",
+    "invalid": "유효하지 않거나 만료된 로그인 링크입니다.",
+    "retry": "다시 로그인"
+  },
+  "join": {
+    "title": "그룹 초대",
+    "notFound": "초대 코드를 찾을 수 없습니다. 관리자에게 새 링크를 요청하세요.",
+    "removed": "이 그룹에서 내보내진 계정입니다. 관리자에게 문의하세요.",
+    "invitedTo": "{{name}} 그룹에 초대받았습니다.",
+    "submit": "참여하기"
+  },
+  "myGroups": {
+    "title": "내 그룹",
+    "empty": "아직 참여한 그룹이 없습니다.",
+    "create": "새 그룹 만들기",
+    "joinCode": "초대 코드",
+    "join": "코드로 참여"
+  },
+  "createGroup": { "title": "새 그룹 만들기", "submit": "그룹 만들기" },
+  "group": { "name": "그룹 이름", "type": "그룹 유형", "country": "국가", "destination": "목적지 (선택)" },
+  "groupType": {
+    "company": "회사",
+    "university": "대학교",
+    "school": "학교",
+    "club": "동호회",
+    "church": "종교 단체",
+    "other": "기타"
+  },
+  "settings": {
+    "title": "그룹 설정",
+    "costMode": "비용 방식",
+    "absenceCutoffHour": "불참 변경 마감 (전날, 시)",
+    "plateRotation": "차량 운행 제한 (부제)",
+    "allowedEmailDomains": "허용 이메일 도메인",
+    "allowedEmailDomainsHint": "비워 두면 누구나 초대 링크로 참여할 수 있습니다. 쉼표로 구분합니다."
+  },
+  "costMode": { "rotation": "운전 순번 (금전 없음)", "actual-cost": "실비 나눔" },
+  "plateRotation": { "none": "없음", "odd-even": "홀짝제", "five-day": "5부제" },
+  "invite": {
+    "title": "초대",
+    "code": "초대 코드",
+    "link": "초대 링크",
+    "copy": "링크 복사",
+    "copied": "링크를 복사했습니다",
+    "rotate": "코드 새로 발급",
+    "rotateConfirm": "새 코드를 발급하면 기존 링크는 더 이상 쓸 수 없습니다. 계속할까요?"
+  },
+  "groupHome": { "myCrews": "내 크루", "noCrews": "아직 속한 크루가 없습니다.", "allCrews": "모든 크루 보기" },
+  "place": { "clear": "지우기", "query": "주소 또는 장소 검색", "search": "검색", "noResults": "검색 결과가 없습니다." },
+  "members": {
+    "title": "멤버",
+    "removeConfirm": "{{name}} 님을 그룹에서 내보낼까요?",
+    "driver": "운전 가능 · {{seats}}석",
+    "role": "역할",
+    "remove": "내보내기"
+  },
+  "role": { "owner": "소유자", "admin": "관리자", "member": "멤버" },
+  "profile": {
+    "title": "내 프로필",
+    "displayName": "표시 이름",
+    "canDrive": "운전할 수 있어요",
+    "seats": "태울 수 있는 인원",
+    "plateLastDigit": "차량 번호 끝자리",
+    "area": "출발 지역",
+    "areaHint": "정확한 주소 대신 약 100m 단위로만 저장됩니다.",
+    "schedule": "주간 일정",
+    "out": "출발",
+    "back": "귀가"
+  },
+  "me": { "title": "내 계정", "displayName": "이름", "locale": "언어", "signOut": "로그아웃" },
+  "locale": { "ko": "한국어", "en": "English" },
+  "crews": { "title": "크루" },
+  "crew": { "title": "크루 상세" },
+  "events": { "title": "행사 카풀" },
+  "admin": { "title": "관리" },
+  "legal": {
+    "kr": {
+      "rotationOnly": "한국에서는 자가용 유상 운송이 제한되어(여객자동차운수사업법 제81조) 돈을 주고받지 않고 운전 순번으로만 운영합니다."
+    },
+    "actualCost": "실제 든 비용만 나눕니다. 수익을 내는 운송은 현지 법을 확인하세요.",
+    "rotation": "돈을 주고받지 않고 운전 순번으로 공평하게 나눕니다."
+  },
+  "suggest": {
+    "reason": {
+      "nearby": "서로 {{km}}km 이내에 삽니다",
+      "schedule": "{{matches}}일 일정이 겹칩니다",
+      "drivers": "운전 가능한 멤버 {{count}}명"
+    }
+  }
+}
