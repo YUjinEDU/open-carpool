@@ -61,7 +61,8 @@ async function waitPortsFree(timeoutMs: number): Promise<number[]> {
 const isKo = async (page: Page): Promise<boolean> => (await page.eval<string>('navigator.language')).toLowerCase().startsWith('ko');
 const savedText = async (page: Page): Promise<string> => ((await isKo(page)) ? '저장했습니다' : 'Saved');
 const activeText = async (page: Page): Promise<string> => ((await isKo(page)) ? '운영 중' : 'Active');
-const zeroRidesText = async (page: Page): Promise<string> => ((await isKo(page)) ? ' 0회' : ' 0 rides');
+/** The ledger label is its own flex item, so innerText separates it with a line break rather than a space. */
+const ZERO_RIDES = /(^|\s)0(회| rides)(\s|$)/;
 
 const seoulToday = (): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -93,9 +94,10 @@ async function saveProfile(page: Page, gid: string, opts: { name: string; drives
   await spaGo(page, `/g/${gid}/profile`);
   await page.waitFor('[data-testid="profile-display-name"]');
   await page.fill('[data-testid="profile-display-name"]', opts.name);
-  const drives = await page.eval<boolean>(`document.querySelector('[data-testid="profile-can-drive"]').checked`);
+  // kit Switch (role=switch) and weekday Chip (aria-pressed) carry their state in ARIA, not .checked
+  const drives = await page.eval<boolean>(`document.querySelector('[data-testid="profile-can-drive"]').getAttribute('aria-checked') === 'true'`);
   if (drives !== opts.drives) await page.click('[data-testid="profile-can-drive"]');
-  const monday = await page.eval<boolean>(`document.querySelector('[data-testid="profile-day-1"]').checked`);
+  const monday = await page.eval<boolean>(`document.querySelector('[data-testid="profile-day-1"]').getAttribute('aria-pressed') === 'true'`);
   if (!monday) await page.click('[data-testid="profile-day-1"]');
   await page.fill('[data-testid="profile-out-1"]', '08:00');
   await page.click('[data-testid="profile-save"]');
@@ -124,6 +126,9 @@ async function main(): Promise<void> {
     await step('a-create-group', [a], async () => {
       await a.fill('[data-testid="group-name"]', 'Slice Co');
       await a.fill('[data-testid="group-country"]', 'KR');
+      // three-step wizard: basics -> destination (skipped) -> policy summary
+      await a.click('[data-testid="group-next"]');
+      await a.click('[data-testid="group-next"]');
       await a.click('[data-testid="group-create-submit"]');
       await a.waitFor('[data-testid="invite-code"]', 20_000);
       gid = (await a.eval<string>('location.pathname')).split('/')[2] ?? '';
@@ -145,6 +150,8 @@ async function main(): Promise<void> {
       await spaGo(a, `/g/${gid}/crews`);
       await a.click('[data-testid="crew-new"]');
       await a.waitFor('[data-testid="crew-form"]');
+      // the member list fills once the members query resolves; wait for the other member's checkbox
+      await a.waitFor('input[data-testid^="crew-member-"]:not([disabled])');
       const ids = await a.eval<{ me: string; other: string }>(`(() => {
         const boxes = [...document.querySelectorAll('input[data-testid^="crew-member-"]')];
         const id = (el) => el.dataset.testid.slice('crew-member-'.length);
@@ -178,7 +185,7 @@ async function main(): Promise<void> {
         [a, b].map((p) => waitForInText(p, `${todayCard} [data-testid="trip-driver"]`, 'Alice', 30_000)),
       );
       const [la, lb] = await Promise.all([a.text(`[data-testid="ledger-row-${uidA}"]`), b.text(`[data-testid="ledger-row-${uidB}"]`)]);
-      if (!la.includes(await zeroRidesText(a)) || !lb.includes(await zeroRidesText(b))) throw new Error(`ledger not zero: "${la}" / "${lb}"`);
+      if (!ZERO_RIDES.test(la) || !ZERO_RIDES.test(lb)) throw new Error(`ledger not zero: "${la}" / "${lb}"`);
       return `driver on ${today}: A sees "${da}", B sees "${db}"; ledger "${la}" / "${lb}"`;
     });
     await step('a-complete-trip', [a, b], async () => {
