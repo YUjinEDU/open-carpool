@@ -1,5 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBlocker } from 'react-router';
+import { useAuth } from '../../app/providers/auth';
 import { useGroup } from '../../app/providers/group';
 import { PageBody } from '../../app/shell/PageBody';
 import { useBack } from '../../app/shell/useBack';
@@ -7,6 +9,7 @@ import { updateMyMember } from '../../data/members';
 import type { Weekday } from '../../domain/types';
 import { useAction } from '../../shared/lib/useAction';
 import { Avatar, Button, Card, CardHeader, ChipGroup, Dialog, Input, Switch, TimeField, TopBar, showToast } from '../../shared/ui';
+import { isDefaultDisplayName } from '../auth/authService';
 import { roundLatLng, type Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
 import { fromDraft, toDraft, weekdayName, WEEKDAYS, type DayDraft, type ScheduleDraft } from './schedule';
@@ -18,6 +21,7 @@ const WORKDAYS: readonly Weekday[] = [1, 2, 3, 4, 5];
 export function ProfilePage() {
   const { t, i18n } = useTranslation();
   const { group, me, refresh } = useGroup();
+  const { rename } = useAuth();
   const back = useBack(`/g/${group.id}`);
   const [displayName, setDisplayName] = useState(me.displayName);
   const [canDrive, setCanDrive] = useState(me.canDrive);
@@ -26,15 +30,25 @@ export function ProfilePage() {
   const [area, setArea] = useState<Place | null>(me.areaLabel ? { label: me.areaLabel, point: me.area } : null);
   const [schedule, setSchedule] = useState<ScheduleDraft>(() => toDraft(me.schedule));
   const [saved, setSaved] = useState(() => JSON.stringify({ displayName: me.displayName, canDrive: me.canDrive, seats: me.seats || 3, plate: me.plateLastDigit === null ? '' : String(me.plateLastDigit), area: me.areaLabel, schedule: toDraft(me.schedule) }));
-  const [leaveAsked, setLeaveAsked] = useState(false);
+  const [daysError, setDaysError] = useState<string | undefined>(undefined);
   const usesPlate = group.policy.plateRotation !== 'none';
 
   const current = JSON.stringify({ displayName, canDrive, seats, plate, area: area?.label ?? '', schedule });
   const dirty = current !== saved;
+  const nameError = isDefaultDisplayName(displayName) ? t('auth.nameDefaultError') : undefined;
+  // Unsaved changes block every way out (back arrow, tab bar, browser back) until confirmed.
+  const blocker = useBlocker(dirty);
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const save = useAction(async () => {
+    const name = displayName.trim();
     await updateMyMember(group.id, me.uid, {
-      displayName: displayName.trim(),
+      displayName: name,
       canDrive,
       seats: canDrive ? seats : 0,
       plateLastDigit: usesPlate && plate !== '' ? Number(plate) : me.plateLastDigit,
@@ -42,6 +56,8 @@ export function ProfilePage() {
       area: area?.point ? roundLatLng(area.point) : null,
       schedule: fromDraft(schedule),
     });
+    // One name everywhere: the account and the other memberships follow the group profile.
+    if (name !== me.displayName) await rename(name);
     setSaved(current);
     refresh();
     showToast(t('common.saved'), 'success');
@@ -68,13 +84,18 @@ export function ProfilePage() {
   };
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (nameError) return;
+    if (selectedDays.length === 0) {
+      setDaysError(t('profile.daysError'));
+      return;
+    }
+    setDaysError(undefined);
     save.run();
   };
-  const onBack = () => (dirty ? setLeaveAsked(true) : back());
 
   return (
     <>
-      <TopBar title={t('profile.title')} onBack={onBack} backLabel={t('nav.back')} />
+      <TopBar title={t('profile.title')} onBack={back} backLabel={t('nav.back')} />
       <PageBody nav>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <Card className="flex flex-col gap-4">
@@ -87,6 +108,8 @@ export function ProfilePage() {
                 maxLength={40}
                 autoComplete="name"
                 wrapperClassName="flex-1"
+                hint={t('profile.nameHint')}
+                error={nameError}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 data-testid="profile-display-name"
@@ -136,7 +159,12 @@ export function ProfilePage() {
 
           <Card as="section" className="flex flex-col gap-4">
             <CardHeader title={t('profile.schedule')} description={t('profile.scheduleHint')} />
-            <ChipGroup label={t('profile.weekdays')} options={dayOptions} value={selectedDays.map((d) => `${d}` as DayKey)} onChange={onDaysChange} showCheck={false} />
+            <ChipGroup label={t('profile.weekdays')} options={dayOptions} value={selectedDays.map((d) => `${d}` as DayKey)} onChange={(days) => { setDaysError(undefined); onDaysChange(days); }} showCheck={false} />
+            {daysError && (
+              <p role="alert" className="text-caption font-medium text-danger-ink">
+                {daysError}
+              </p>
+            )}
             {selectedDays.length > 0 && (
               <div className="flex flex-col gap-2">
                 <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1fr)] gap-2 text-sub font-medium text-ink-2" aria-hidden="true">
@@ -155,7 +183,7 @@ export function ProfilePage() {
                   );
                 })}
                 {selectedDays.filter((d) => WORKDAYS.includes(d)).length > 1 && (
-                  <Button type="button" variant="ghost" size="sm" className="self-start" onClick={sameForWeekdays}>
+                  <Button type="button" variant="ghost" className="self-start" onClick={sameForWeekdays}>
                     {t('profile.sameForWeekdays')}
                   </Button>
                 )}
@@ -172,21 +200,15 @@ export function ProfilePage() {
       </PageBody>
 
       <Dialog
-        open={leaveAsked}
-        onClose={() => setLeaveAsked(false)}
+        open={blocker.state === 'blocked'}
+        onClose={() => blocker.reset?.()}
         role="alertdialog"
         title={t('profile.unsavedTitle')}
         description={t('profile.unsavedBody')}
         actions={
           <>
-            <Button variant="secondary" onClick={() => setLeaveAsked(false)}>{t('profile.keepEditing')}</Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setLeaveAsked(false);
-                back();
-              }}
-            >
+            <Button variant="secondary" onClick={() => blocker.reset?.()}>{t('profile.keepEditing')}</Button>
+            <Button variant="danger" onClick={() => blocker.proceed?.()}>
               {t('profile.leave')}
             </Button>
           </>

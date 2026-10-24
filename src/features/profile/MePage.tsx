@@ -19,7 +19,7 @@ export function MePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const back = useBack('/');
-  const { saveProfile } = useAuth();
+  const { saveProfile, rename } = useAuth();
   const { profile } = useSession();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [locale, setLocale] = useState<Locale>(profile.locale);
@@ -28,7 +28,10 @@ export function MePage() {
   const [permission, setPermission] = useState(() => notificationState());
 
   const save = useAction(async () => {
-    await saveProfile({ ...profile, displayName: displayName.trim(), locale });
+    const name = displayName.trim();
+    await saveProfile({ ...profile, displayName: name, locale });
+    // The account name is the one name: every membership follows it.
+    if (name !== profile.displayName) await rename(name);
     showToast(t('common.saved'), 'success');
   });
   const leave = useAction(async () => {
@@ -75,6 +78,7 @@ export function MePage() {
               required
               maxLength={40}
               autoComplete="name"
+              hint={t('me.nameHint')}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               data-testid="me-display-name"

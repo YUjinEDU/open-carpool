@@ -101,6 +101,12 @@ const browserLocale = (): Locale =>
  */
 const DEFAULT_DISPLAY_NAME: Record<Locale, string> = { ko: '멤버', en: 'Member' };
 
+/** True while the profile still carries the placeholder: the UI asks for a real name before the group sees it. */
+export const isDefaultDisplayName = (name: string): boolean => {
+  const trimmed = name.trim();
+  return trimmed === '' || Object.values(DEFAULT_DISPLAY_NAME).includes(trimmed);
+};
+
 /** Return the user's profile, creating `users/{uid}` on first sign-in. */
 export async function ensureUserProfile(user: User): Promise<UserProfile> {
   const existing = await getProfile(user.uid);

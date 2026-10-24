@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, collectionGroup, doc, getDoc, getDocs, query, updateDoc, where, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Member, MemberRole } from '../domain/types';
 import { nowIso, plainConverter } from './converters';
@@ -49,6 +49,16 @@ export async function getMember(gid: string, uid: string): Promise<Member | null
 
 export async function updateMyMember(gid: string, uid: string, patch: MyMemberPatch): Promise<void> {
   await updateDoc(memberRef(gid, uid), { ...patch });
+}
+
+/** The account name is the one name: copy it into every active membership so the ledgers and lists agree. */
+export async function setDisplayNameEverywhere(uid: string, displayName: string): Promise<void> {
+  const memberships = await getDocs(query(collectionGroup(db, 'members'), where('uid', '==', uid), where('status', '==', 'active')));
+  const stale = memberships.docs.filter((d) => d.data().displayName !== displayName);
+  if (stale.length === 0) return;
+  const batch = writeBatch(db);
+  for (const d of stale) batch.update(d.ref, { displayName });
+  await batch.commit();
 }
 
 /** Admin action. Ownership is never transferred through this call (rules deny role 'owner'). */

@@ -1,6 +1,7 @@
 import type { User } from 'firebase/auth';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { showToast } from '../../shared/ui';
+import { setDisplayNameEverywhere } from '../../data/members';
 import { upsertProfile } from '../../data/users';
 import type { UserProfile } from '../../domain/types';
 import { ensureUserProfile, onAuthChange } from '../../features/auth/authService';
@@ -12,6 +13,8 @@ export interface AuthContextValue {
   readonly profile: UserProfile | null;
   readonly loading: boolean;
   readonly saveProfile: (profile: UserProfile) => Promise<void>;
+  /** Set the display name on the account and on every active membership (one name everywhere). */
+  readonly rename: (displayName: string) => Promise<void>;
 }
 
 interface AuthState {
@@ -49,7 +52,17 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     setState((s) => (s.user?.uid === profile.uid ? { ...s, profile } : s));
   }, []);
 
-  const value = useMemo(() => ({ ...state, saveProfile }), [state, saveProfile]);
+  const rename = useCallback(
+    async (displayName: string) => {
+      const current = state.profile;
+      if (!current) throw new Error('rename needs a loaded profile');
+      await saveProfile({ ...current, displayName });
+      await setDisplayNameEverywhere(current.uid, displayName);
+    },
+    [state.profile, saveProfile],
+  );
+
+  const value = useMemo(() => ({ ...state, saveProfile, rename }), [state, saveProfile, rename]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
