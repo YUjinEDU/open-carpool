@@ -20,6 +20,7 @@ const { MAX_CREW_SIZE } = await import('../../src/domain/types');
 const run = Math.random().toString(36).slice(2, 8);
 const PASSWORD = 'emulator-only-pw';
 const uids: Record<'ann' | 'ben', string> = { ann: '', ben: '' };
+const defaultNames: string[] = [];
 
 async function become(name: 'ann' | 'ben'): Promise<string> {
   await signOut(auth);
@@ -31,13 +32,23 @@ beforeAll(async () => {
   for (const name of ['ann', 'ben'] as const) {
     const { user } = await createUserWithEmailAndPassword(auth, `${name}-${run}@example.com`, PASSWORD);
     uids[name] = user.uid;
-    await ensureUserProfile(user);
+    defaultNames.push((await ensureUserProfile(user)).displayName);
   }
 });
 
 afterAll(async () => {
   await signOut(auth);
   vi.unstubAllEnvs();
+});
+
+describe('first sign-in profile', () => {
+  it('does not default the display name to the email local part', () => {
+    expect(defaultNames).toHaveLength(2);
+    for (const name of defaultNames) {
+      expect(name).not.toMatch(/ann|ben/);
+      expect(name.length).toBeGreaterThan(0);
+    }
+  });
 });
 
 describe('repositories under security rules', () => {

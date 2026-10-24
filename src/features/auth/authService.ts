@@ -95,16 +95,23 @@ export function onAuthChange(callback: (user: User | null) => void): Unsubscribe
 const browserLocale = (): Locale =>
   typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('ko') ? 'ko' : 'en';
 
+/**
+ * Neutral name until the member sets one on their profile. Never derived from the email address:
+ * the name is copied into member docs that the whole group reads (security review S-14).
+ */
+const DEFAULT_DISPLAY_NAME: Record<Locale, string> = { ko: '멤버', en: 'Member' };
+
 /** Return the user's profile, creating `users/{uid}` on first sign-in. */
 export async function ensureUserProfile(user: User): Promise<UserProfile> {
   const existing = await getProfile(user.uid);
   if (existing) return existing;
+  const locale = browserLocale();
   const profile: UserProfile = {
     uid: user.uid,
-    displayName: user.displayName ?? user.email?.split('@')[0] ?? '',
+    displayName: user.displayName || DEFAULT_DISPLAY_NAME[locale],
     email: user.email,
     photoURL: user.photoURL,
-    locale: browserLocale(),
+    locale,
     createdAt: nowIso(),
   };
   await upsertProfile(profile);
