@@ -77,7 +77,9 @@ describe('trips', () => {
     batch.update(db.doc(`groups/${GID}/crews/${CID}/trips/${TRIP}`), {
       status: 'done', applied: true, completedBy: 'alice', completedAt: NOW,
     });
-    batch.update(db.doc(`groups/${GID}/crews/${CID}`), { scores: { alice: 30, bob: -30 } });
+    batch.update(db.doc(`groups/${GID}/crews/${CID}`), {
+      scores: { alice: 30, bob: -30 }, lastDroveOn: { alice: '2026-10-26' }, ledgerTripId: TRIP,
+    });
     await assertSucceeds(batch.commit());
   });
 

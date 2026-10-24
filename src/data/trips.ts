@@ -100,9 +100,11 @@ export async function completeTrip(
       driverId: completion.driverId,
       riderIds,
     });
+    // ledgerTripId binds this ledger move to the trip settled in the same transaction (firestore.rules).
     tx.update(crewRef(gid, cid), {
       scores,
       lastDroveOn: { ...crew.lastDroveOn, [completion.driverId]: trip.date },
+      ledgerTripId: tripId,
     });
     return scores;
   });

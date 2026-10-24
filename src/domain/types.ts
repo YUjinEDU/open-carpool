@@ -87,6 +87,8 @@ export interface Crew {
   waitLimitMin: number;
   scores: Scores;
   lastDroveOn: Record<string, string>; // uid -> 'YYYY-MM-DD'
+  /** Trip whose settlement last moved `scores`; rules require it to flip `applied` in the same write. */
+  ledgerTripId?: string;
   createdBy: string;
   createdAt: string;
 }

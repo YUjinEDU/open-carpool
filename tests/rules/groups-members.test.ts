@@ -16,9 +16,9 @@ describe('groups', () => {
   it('creates group + owner member + invite code in one batch', async () => {
     const db = as('founder');
     const batch = db.batch();
-    batch.set(db.doc('groups/g2'), group({ ownerId: 'founder', inviteCode: 'NEWGROUP' }));
-    batch.set(db.doc('groups/g2/members/founder'), member('founder', 'owner', { inviteCode: 'NEWGROUP' }));
-    batch.set(db.doc('inviteCodes/NEWGROUP'), { groupId: 'g2', groupName: 'Acme', createdBy: 'founder', createdAt: NOW });
+    batch.set(db.doc('groups/g2'), group({ ownerId: 'founder', inviteCode: 'NEWGRP23' }));
+    batch.set(db.doc('groups/g2/members/founder'), member('founder', 'owner', { inviteCode: 'NEWGRP23' }));
+    batch.set(db.doc('inviteCodes/NEWGRP23'), { groupId: 'g2', groupName: 'Acme', createdBy: 'founder', createdAt: NOW });
     await assertSucceeds(batch.commit());
   });
 

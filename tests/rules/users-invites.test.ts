@@ -42,21 +42,21 @@ describe('inviteCodes', () => {
   it('lets an admin rotate the code atomically', async () => {
     const db = as('admin');
     const batch = db.batch();
-    batch.set(db.doc('inviteCodes/NEWCODE2'), { groupId: GID, groupName: 'Acme', createdBy: 'admin', createdAt: NOW });
-    batch.update(db.doc(`groups/${GID}`), { inviteCode: 'NEWCODE2' });
+    batch.set(db.doc('inviteCodes/NEWCDE23'), { groupId: GID, groupName: 'Acme', createdBy: 'admin', createdAt: NOW });
+    batch.update(db.doc(`groups/${GID}`), { inviteCode: 'NEWCDE23' });
     batch.delete(db.doc(`inviteCodes/${CODE}`));
     await assertSucceeds(batch.commit());
   });
 
   it('denies a plain member creating or deleting codes', async () => {
     const db = as('alice');
-    await assertFails(db.doc('inviteCodes/NEWCODE2').set({ groupId: GID, groupName: 'Acme', createdBy: 'alice', createdAt: NOW }));
+    await assertFails(db.doc('inviteCodes/NEWCDE23').set({ groupId: GID, groupName: 'Acme', createdBy: 'alice', createdAt: NOW }));
     await assertFails(db.doc(`inviteCodes/${CODE}`).delete());
   });
 
   it('denies an admin creating a code that is not the group code', async () => {
     await assertFails(
-      as('admin').doc('inviteCodes/SIDECODE').set({ groupId: GID, groupName: 'Acme', createdBy: 'admin', createdAt: NOW }),
+      as('admin').doc('inviteCodes/SDECDE23').set({ groupId: GID, groupName: 'Acme', createdBy: 'admin', createdAt: NOW }),
     );
   });
 });
