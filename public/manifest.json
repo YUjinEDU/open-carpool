@@ -1,11 +1,12 @@
 {
-  "name": "CNU 카풀",
-  "short_name": "CNU카풀",
-  "description": "충남대학교 카풀 매칭 서비스",
+  "name": "open-carpool",
+  "short_name": "Carpool",
+  "description": "Carpool operations for groups: fixed crews, fair driver rotation, ride logs.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0D47A1",
-  "theme_color": "#1565C0",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
   "orientation": "portrait",
   "icons": [
     {
@@ -13,16 +14,6 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
     }
   ]
 }
