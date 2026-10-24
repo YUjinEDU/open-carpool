@@ -28,7 +28,9 @@ Copy `.env.example` to `.env.local` (local) and set the same values in your host
 | `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID` | yes | from the Firebase web app config |
 | `VITE_NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` | for Korean groups | NAVER Cloud Platform > Maps (Geocoding). The secret is only used by the serverless proxy in `api/naver/*` |
 | `VITE_GOOGLE_MAPS_API_KEY` | for non-Korean groups | restrict it to your domain and the Maps JavaScript + Geocoding APIs |
-| `ALLOWED_ORIGINS` | yes (production) | comma-separated exact origins allowed to call `/api/naver/*`, e.g. `https://carpool.example.org` |
+| `ALLOWED_ORIGINS` | yes (production) | comma-separated exact origins allowed to call `/api/naver/*`, e.g. `https://carpool.example.org`. `localhost` dev origins are added only when `VERCEL_ENV` is not `production` |
+| `FIREBASE_PROJECT_ID` | for `/api/naver/*` | project whose ID tokens the Naver proxy accepts (falls back to `VITE_FIREBASE_PROJECT_ID`). Without either the proxy answers 500 |
+| `ALLOW_EMULATOR_ID_TOKENS` | no (dev only) | `true` lets the proxy accept unsigned Auth-emulator tokens, only together with `FIREBASE_AUTH_EMULATOR_HOST` and `VERCEL_ENV` other than `production` |
 | `VITE_KAKAO_OIDC_ENABLED` | no | `true` after step 2.5 |
 | `VITE_KAKAO_JS_KEY` | no | Kakao share button |
 
@@ -38,6 +40,17 @@ Without map keys the app still works: members type an area name and no coordinat
 1. Import the repository in Vercel. Framework preset: **Vite**. Build command `npm run build`, output `dist`.
 2. Add the environment variables from step 3.
 3. `vercel.json` already rewrites all non-API routes to `index.html` so invite links like `/join/ABCD2345` work.
+4. `vercel.json` also sends security headers on every route (checked by `api/_security-headers.test.ts`):
+
+   | Header | Value |
+   |---|---|
+   | `Content-Security-Policy` | `default-src 'self'`; `script-src 'self' https://apis.google.com https://www.gstatic.com https://maps.googleapis.com` (Firebase Auth popup helper, Google Maps JS); `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com` (Auth, Firestore, Maps; Naver goes through `/api`); `img-src 'self' data: blob: https:`; `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com`; `font-src 'self' data: https://cdn.jsdelivr.net https://fonts.gstatic.com`; `frame-src https://*.firebaseapp.com https://*.web.app https://accounts.google.com` (Auth iframe/popup); `worker-src 'self'`; `manifest-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'` |
+   | `X-Content-Type-Options` | `nosniff` |
+   | `X-Frame-Options` | `DENY` |
+   | `Referrer-Policy` | `strict-origin-when-cross-origin` |
+   | `Permissions-Policy` | `geolocation=(self), camera=(), microphone=()` |
+
+   If you use a **custom Auth domain** (not `*.firebaseapp.com` / `*.web.app`), add it to `frame-src`. If you add scripts or APIs, extend the policy; the browser console reports blocked requests as CSP violations. On other hosts, send the same headers from your server config.
 
 Any other static host works too; you then need to host `api/naver/*.ts` as serverless functions (or skip Naver and use manual area names).
 
