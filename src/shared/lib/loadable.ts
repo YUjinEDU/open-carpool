@@ -29,17 +29,25 @@ export function useLoad<T>(load: () => Promise<T>, deps: DependencyList): readon
 
 export type Subscribe<T> = (onData: (data: T) => void, onError: (error: Error) => void) => () => void;
 
-/** Keep the latest value pushed by a realtime subscription (e.g. Firestore onSnapshot). */
+const LOADING: Loadable<never> = { status: 'loading' };
+const sameDeps = (a: DependencyList, b: DependencyList): boolean =>
+  a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+
+/**
+ * Keep the latest value pushed by a realtime subscription (e.g. Firestore onSnapshot). A value is
+ * tagged with the deps it was subscribed under, so after the deps change the hook reports 'loading'
+ * until the new subscription delivers instead of handing out data for the old inputs.
+ */
 export function useSubscription<T>(subscribe: Subscribe<T>, deps: DependencyList): Loadable<T> {
-  const [state, setState] = useState<Loadable<T>>({ status: 'loading' });
+  const [state, setState] = useState<{ readonly deps: DependencyList; readonly value: Loadable<T> } | null>(null);
   useEffect(
     () =>
       subscribe(
-        (data) => setState({ status: 'ready', data }),
-        (error) => setState({ status: 'error', error }),
+        (data) => setState({ deps, value: { status: 'ready', data } }),
+        (error) => setState({ deps, value: { status: 'error', error } }),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     deps,
   );
-  return state;
+  return state !== null && sameDeps(state.deps, deps) ? state.value : LOADING;
 }
