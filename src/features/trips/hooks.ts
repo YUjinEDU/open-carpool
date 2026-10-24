@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useGroup } from '../../app/providers/group';
 import { showToast } from '../../components/Toast';
-import { subscribeTrips, upsertPlannedTrips, type DateRange } from '../../data/trips';
+import { subscribeTrips, type DateRange } from '../../data/trips';
 import { addDays, DEFAULT_TZ, today } from '../../domain/dates';
-import { planTrips } from '../../domain/planning';
+import type { PlanInput } from '../../domain/planning';
 import type { Crew, Member, Trip } from '../../domain/types';
 import { useSubscription, type Loadable } from '../../shared/lib/loadable';
 import { describeError } from '../../shared/lib/useAction';
-import { tripsToWrite } from './reconcile';
+import { plannedWrites, syncCrewPlan } from './syncPlan';
 
 /** Groups carry no time zone yet; every date and cutoff is evaluated in this zone. */
 export const GROUP_TZ = DEFAULT_TZ;
@@ -35,7 +35,7 @@ export function useCrewPlan(crew: Crew, members: readonly Member[]): Loadable<Tr
   useEffect(() => {
     if (trips.status !== 'ready' || !isMember) return undefined;
     const timer = window.setTimeout(() => {
-      const planned = planTrips({
+      const plan: PlanInput = {
         crew,
         members,
         from,
@@ -44,12 +44,12 @@ export function useCrewPlan(crew: Crew, members: readonly Member[]): Loadable<Tr
         now: new Date(),
         tz: GROUP_TZ,
         policy: group.policy,
-      });
-      const writes = tripsToWrite(planned, trips.data);
+      };
+      const writes = plannedWrites(plan);
       const key = JSON.stringify(writes);
       if (writes.length === 0 || key === lastWrite.current) return;
       lastWrite.current = key;
-      upsertPlannedTrips(group.id, crew.id, writes).catch((e: unknown) => {
+      syncCrewPlan({ gid: group.id, plan }).catch((e: unknown) => {
         lastWrite.current = '';
         showToast(describeError(e), 'error');
       });

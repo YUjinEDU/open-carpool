@@ -3,7 +3,6 @@ import {
   arrayUnion,
   collection,
   doc,
-  getDoc,
   getDocs,
   onSnapshot,
   orderBy,
@@ -11,7 +10,6 @@ import {
   runTransaction,
   updateDoc,
   where,
-  writeBatch,
   type FirestoreError,
   type Unsubscribe,
 } from 'firebase/firestore';
@@ -45,16 +43,30 @@ const tripRef = (gid: string, cid: string, tripId: string) =>
 
 const isSettled = (trip: Trip): boolean => trip.applied || trip.status === 'done';
 
-/** Write planned trips idempotently; trips already completed are never overwritten. */
-export async function upsertPlannedTrips(gid: string, cid: string, trips: Trip[]): Promise<void> {
-  const existing = await Promise.all(trips.map((t) => getDoc(tripRef(gid, cid, t.id))));
-  const batch = writeBatch(db);
-  trips.forEach((trip, i) => {
-    const current = existing[i];
-    if (current?.exists() && isSettled(current.data())) return;
-    batch.set(tripRef(gid, cid, trip.id), trip, { merge: true });
+/** A planner write: the trip ids it covers and how to derive the writes from their stored state. */
+export interface PlanWrite {
+  readonly ids: readonly string[];
+  /** Trips to write given the stored trips among `ids`; re-run on every transaction attempt. */
+  readonly writesFor: (stored: readonly Trip[]) => readonly Trip[];
+}
+
+/**
+ * Write planned trips in one transaction, computed from what is stored at commit time so a stale
+ * snapshot never overwrites a concurrent absence or volunteer. Existing trips get only their plan
+ * fields (absentIds are owned by markAbsent); settled trips are skipped.
+ */
+export async function upsertPlannedTrips(gid: string, cid: string, { ids, writesFor }: PlanWrite): Promise<void> {
+  await runTransaction(db, async (tx) => {
+    const snaps = await Promise.all(ids.map((id) => tx.get(tripRef(gid, cid, id))));
+    const stored = snaps.flatMap((s) => (s.exists() ? [s.data()] : []));
+    const byId = new Map(stored.map((t) => [t.id, t]));
+    for (const trip of writesFor(stored)) {
+      const prev = byId.get(trip.id);
+      const ref = tripRef(gid, cid, trip.id);
+      if (prev === undefined) tx.set(ref, trip);
+      else if (!isSettled(prev)) tx.update(ref, { driverId: trip.driverId, riderIds: trip.riderIds, status: trip.status });
+    }
   });
-  await batch.commit();
 }
 
 export async function markAbsent(gid: string, cid: string, tripId: string, uid: string, absent: boolean): Promise<void> {

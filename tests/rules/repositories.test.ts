@@ -89,14 +89,15 @@ describe('repositories under security rules', () => {
       id: '2026-10-26_out', date: '2026-10-26', leg: 'out' as const, driverId: ann, riderIds: [ben],
       absentIds: [], status: 'planned' as const, applied: false, completedBy: null, completedAt: null, cost: null,
     };
-    await trips.upsertPlannedTrips(group.id, crew.id, [planned]);
+    const planWrite = { ids: [planned.id], writesFor: () => [planned] };
+    await trips.upsertPlannedTrips(group.id, crew.id, planWrite);
     const scores = await trips.completeTrip(group.id, crew.id, planned.id, { driverId: ann, riderIds: [ben] }, ann);
     expect(scores).toEqual({ [ann]: 30, [ben]: -30 });
     await expect(
       trips.completeTrip(group.id, crew.id, planned.id, { driverId: ann, riderIds: [ben] }, ann),
     ).rejects.toBeInstanceOf(trips.TripAlreadyAppliedError);
 
-    await trips.upsertPlannedTrips(group.id, crew.id, [planned]); // must not reset a done trip
+    await trips.upsertPlannedTrips(group.id, crew.id, planWrite); // must not reset a done trip
     const [stored] = await trips.listTrips(group.id, crew.id, { from: '2026-10-26', to: '2026-10-26' });
     expect(stored?.applied).toBe(true);
 
