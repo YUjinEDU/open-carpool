@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type DependencyList } from 'react';
+import { useCallback, useEffect, useMemo, useState, type DependencyList } from 'react';
 
 export type Loadable<T> =
   | { readonly status: 'loading' }
@@ -33,21 +33,28 @@ const LOADING: Loadable<never> = { status: 'loading' };
 const sameDeps = (a: DependencyList, b: DependencyList): boolean =>
   a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
 
+/** A live value plus `retry`, which subscribes again (a failed Firestore listener does not recover). */
+export type Subscription<T> = Loadable<T> & { readonly retry: () => void };
+
 /**
  * Keep the latest value pushed by a realtime subscription (e.g. Firestore onSnapshot). A value is
- * tagged with the deps it was subscribed under, so after the deps change the hook reports 'loading'
- * until the new subscription delivers instead of handing out data for the old inputs.
+ * tagged with the deps it was subscribed under, so after the deps change (or a retry) the hook reports
+ * 'loading' until the new subscription delivers instead of handing out data for the old inputs.
  */
-export function useSubscription<T>(subscribe: Subscribe<T>, deps: DependencyList): Loadable<T> {
-  const [state, setState] = useState<{ readonly deps: DependencyList; readonly value: Loadable<T> } | null>(null);
+export function useSubscription<T>(subscribe: Subscribe<T>, deps: DependencyList): Subscription<T> {
+  const [version, setVersion] = useState(0);
+  const [state, setState] = useState<{ readonly key: DependencyList; readonly value: Loadable<T> } | null>(null);
+  const key = [...deps, version];
   useEffect(
     () =>
       subscribe(
-        (data) => setState({ deps, value: { status: 'ready', data } }),
-        (error) => setState({ deps, value: { status: 'error', error } }),
+        (data) => setState({ key, value: { status: 'ready', data } }),
+        (error) => setState({ key, value: { status: 'error', error } }),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    deps,
+    key,
   );
-  return state !== null && sameDeps(state.deps, deps) ? state.value : LOADING;
+  const value = state !== null && sameDeps(state.key, key) ? state.value : LOADING;
+  const retry = useCallback(() => setVersion((v) => v + 1), []);
+  return useMemo(() => ({ ...value, retry }), [value, retry]);
 }

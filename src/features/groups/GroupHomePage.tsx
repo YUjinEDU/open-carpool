@@ -150,7 +150,7 @@ export function GroupHomePage() {
           </Banner>
         )}
 
-        {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={() => window.location.reload()} />}
+        {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={crews.retry} />}
         {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
 
         {loading && (

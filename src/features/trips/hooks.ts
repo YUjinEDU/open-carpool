@@ -5,7 +5,7 @@ import { subscribeTrips, type DateRange } from '../../data/trips';
 import { addDays, DEFAULT_TZ, today } from '../../domain/dates';
 import type { PlanInput } from '../../domain/planning';
 import type { Crew, Member, Trip } from '../../domain/types';
-import { useSubscription, type Loadable } from '../../shared/lib/loadable';
+import { useSubscription, type Subscription } from '../../shared/lib/loadable';
 import { describeError } from '../../shared/lib/useAction';
 import { plannedWrites, syncCrewPlan } from './syncPlan';
 
@@ -24,7 +24,7 @@ export const useTrips = (gid: string, cid: string, range: DateRange) =>
  * Live trips of the next PLAN_DAYS days. While a crew member watches, the plan is recomputed
  * (debounced) and only trips whose plan changed are written; settled trips are never touched.
  */
-export function useCrewPlan(crew: Crew, members: readonly Member[]): Loadable<Trip[]> {
+export function useCrewPlan(crew: Crew, members: readonly Member[]): Subscription<Trip[]> {
   const { group, me } = useGroup();
   const from = today(GROUP_TZ);
   const range = useMemo(() => ({ from, to: addDays(from, PLAN_DAYS - 1) }), [from]);

@@ -71,7 +71,7 @@ export function CrewsPage() {
         trailing={<IconButton label={t('crews.new')} icon={<Plus />} onClick={() => setForm({ open: true, memberIds: [] })} data-testid="crew-new" />}
       />
       <PageBody nav className="gap-6">
-        {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={() => window.location.reload()} />}
+        {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={crews.retry} />}
         {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
         {loading && (
           <div className="flex flex-col gap-3">

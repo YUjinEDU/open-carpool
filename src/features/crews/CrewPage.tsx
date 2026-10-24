@@ -51,7 +51,7 @@ export function CrewPage() {
       <>
         <TopBar title={t('crew.title')} onBack={back} backLabel={t('nav.back')} />
         <PageBody nav>
-          {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={() => window.location.reload()} />}
+          {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={crews.retry} />}
           {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
         </PageBody>
       </>
@@ -274,7 +274,7 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
               <Skeleton className="h-14" />
             </div>
           )}
-          {crew.status === 'active' && trips.status === 'error' && <ErrorBanner error={trips.error} onRetry={() => window.location.reload()} className="m-4" />}
+          {crew.status === 'active' && trips.status === 'error' && <ErrorBanner error={trips.error} onRetry={trips.retry} className="m-4" />}
           {crew.status === 'active' && trips.status === 'ready' && sortedWeek.length === 0 && <EmptyState compact title={t('crew.noTrips')} />}
           {crew.status === 'active' && trips.status === 'ready' && sortedWeek.length > 0 && (
             <ul role="list" className="mt-1 divide-y divide-line">
