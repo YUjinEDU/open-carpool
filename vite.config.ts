@@ -12,6 +12,10 @@ const naverProxy = (route: string, upstreamPath: string, env: Record<string, str
     'X-NCP-APIGW-API-KEY-ID': env.VITE_NAVER_CLIENT_ID || '',
     'X-NCP-APIGW-API-KEY': env.NAVER_CLIENT_SECRET || '',
   },
+  // The app sends its Firebase ID token to /api/naver/*; never forward it to Naver.
+  configure: (proxy: { on: (event: 'proxyReq', cb: (req: { removeHeader: (name: string) => void }) => void) => void }) => {
+    proxy.on('proxyReq', (req) => req.removeHeader('authorization'));
+  },
 });
 
 export default defineConfig(({ mode }) => {
