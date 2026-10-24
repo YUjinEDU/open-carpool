@@ -17,6 +17,22 @@ import { idConverter, nowIso, plainConverter } from './converters';
 export type CreateEventInput = Pick<RideEvent, 'title' | 'date' | 'time' | 'place'>;
 export type MyCarInput = Pick<EventCar, 'driverName' | 'seats' | 'note'>;
 
+/** The car has no free seat left. */
+export class CarFullError extends Error {
+  constructor(readonly driverId: string) {
+    super(`car is full: ${driverId}`);
+    this.name = 'CarFullError';
+  }
+}
+
+/** The driver tried to offer fewer seats than riders already joined. */
+export class SeatsBelowRidersError extends Error {
+  constructor(readonly driverId: string) {
+    super(`seats below the riders already in the car: ${driverId}`);
+    this.name = 'SeatsBelowRidersError';
+  }
+}
+
 const eventsCol = (gid: string) => collection(db, 'groups', gid, 'events').withConverter(idConverter<RideEvent>());
 const carsCol = (gid: string, eid: string) =>
   collection(db, 'groups', gid, 'events', eid, 'cars').withConverter(plainConverter<EventCar>());
@@ -46,13 +62,23 @@ export async function upsertMyCar(gid: string, eid: string, driverId: string, ca
   const ref = carRef(gid, eid, driverId);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
-    if (snap.exists()) tx.update(ref, { ...car });
-    else tx.set(ref, { ...car, driverId, riderIds: [] });
+    if (!snap.exists()) {
+      tx.set(ref, { ...car, driverId, riderIds: [] });
+      return;
+    }
+    if (car.seats < snap.data().riderIds.length) throw new SeatsBelowRidersError(driverId);
+    tx.update(ref, { ...car });
   });
 }
 
+/** Take a seat. Throws CarFullError when the last seat went first. */
 export async function joinCar(gid: string, eid: string, driverId: string, uid: string): Promise<void> {
-  await updateDoc(carRef(gid, eid, driverId), { riderIds: arrayUnion(uid) });
+  const ref = carRef(gid, eid, driverId);
+  await runTransaction(db, async (tx) => {
+    const car = (await tx.get(ref)).data();
+    if (car && !car.riderIds.includes(uid) && car.riderIds.length >= car.seats) throw new CarFullError(driverId);
+    tx.update(ref, { riderIds: arrayUnion(uid) });
+  });
 }
 
 export async function leaveCar(gid: string, eid: string, driverId: string, uid: string): Promise<void> {

@@ -110,5 +110,12 @@ describe('repositories under security rules', () => {
     await become('ben');
     await events.joinCar(group.id, event.id, ann, ben);
     expect((await events.listCars(group.id, event.id))[0]?.riderIds).toEqual([ben]);
+
+    await events.upsertMyCar(group.id, event.id, ben, { driverName: 'Ben', seats: 0, note: '' });
+    await become('ann');
+    await expect(events.upsertMyCar(group.id, event.id, ann, { driverName: 'Ann', seats: 0, note: '' })).rejects.toBeInstanceOf(
+      events.SeatsBelowRidersError,
+    );
+    await expect(events.joinCar(group.id, event.id, ben, ann)).rejects.toBeInstanceOf(events.CarFullError);
   });
 });

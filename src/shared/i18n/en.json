@@ -440,6 +440,7 @@
     "cancel": "Cancel",
     "completed": "Already completed",
     "driverTaken": "Someone else already has this drive. Check the latest plan.",
+    "alreadyApplied": "This trip was already recorded.",
     "absentToast": "Marked as not going.",
     "backToast": "Marked as going.",
     "gaveUpToast": "A driver is needed: the crew can volunteer.",
@@ -483,7 +484,9 @@
     "driveSuffix": "drives"
   },
   "events": {
-    "title": "Event rides"
+    "title": "Event rides",
+    "carFull": "This car is full now.",
+    "seatsBelowRiders": "Seats cannot be fewer than the riders who already joined."
   },
   "admin": {
     "title": "Admin"
