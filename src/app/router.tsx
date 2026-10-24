@@ -1,48 +1,46 @@
+import { lazy, Suspense, type ComponentType } from 'react';
 import { createBrowserRouter, Outlet } from 'react-router';
-import { AdminPage } from '../features/admin/AdminPage';
-import { SignInFinishPage } from '../features/auth/SignInFinishPage';
-import { SignInPage } from '../features/auth/SignInPage';
-import { CrewPage } from '../features/crews/CrewPage';
-import { CrewsPage } from '../features/crews/CrewsPage';
-import { EventsPage } from '../features/events/EventsPage';
-import { CreateGroupPage } from '../features/groups/CreateGroupPage';
-import { GroupHomePage } from '../features/groups/GroupHomePage';
-import { JoinPage } from '../features/groups/JoinPage';
-import { MyGroupsPage } from '../features/groups/MyGroupsPage';
-import { SettingsPage } from '../features/groups/SettingsPage';
-import { MembersPage } from '../features/members/MembersPage';
-import { MePage } from '../features/profile/MePage';
-import { ProfilePage } from '../features/profile/ProfilePage';
-import { NotFoundPage, RouteErrorPage } from './fallbacks';
+import { LoadingState, NotFoundPage, RouteErrorPage } from './fallbacks';
 import { GroupLayout } from './GroupLayout';
 import { RequireAuth } from './RequireAuth';
+
+/** Route-level code splitting: each feature page is its own chunk, loaded on first visit. */
+function page(load: () => Promise<ComponentType>) {
+  const Page = lazy(async () => ({ default: await load() }));
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <Page />
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
     element: <Outlet />,
     errorElement: <RouteErrorPage />,
     children: [
-      { path: '/signin', element: <SignInPage /> },
-      { path: '/signin/finish', element: <SignInFinishPage /> },
+      { path: '/signin', element: page(async () => (await import('../features/auth/SignInPage')).SignInPage) },
+      { path: '/signin/finish', element: page(async () => (await import('../features/auth/SignInFinishPage')).SignInFinishPage) },
       {
         element: <RequireAuth />,
         children: [
-          { path: '/', element: <MyGroupsPage /> },
-          { path: '/join/:code', element: <JoinPage /> },
-          { path: '/groups/new', element: <CreateGroupPage /> },
-          { path: '/me', element: <MePage /> },
+          { path: '/', element: page(async () => (await import('../features/groups/MyGroupsPage')).MyGroupsPage) },
+          { path: '/join/:code', element: page(async () => (await import('../features/groups/JoinPage')).JoinPage) },
+          { path: '/groups/new', element: page(async () => (await import('../features/groups/CreateGroupPage')).CreateGroupPage) },
+          { path: '/me', element: page(async () => (await import('../features/profile/MePage')).MePage) },
           {
             path: '/g/:gid',
             element: <GroupLayout />,
             children: [
-              { index: true, element: <GroupHomePage /> },
-              { path: 'crews', element: <CrewsPage /> },
-              { path: 'crews/:cid', element: <CrewPage /> },
-              { path: 'events', element: <EventsPage /> },
-              { path: 'members', element: <MembersPage /> },
-              { path: 'profile', element: <ProfilePage /> },
-              { path: 'settings', element: <SettingsPage /> },
-              { path: 'admin', element: <AdminPage /> },
+              { index: true, element: page(async () => (await import('../features/groups/GroupHomePage')).GroupHomePage) },
+              { path: 'crews', element: page(async () => (await import('../features/crews/CrewsPage')).CrewsPage) },
+              { path: 'crews/:cid', element: page(async () => (await import('../features/crews/CrewPage')).CrewPage) },
+              { path: 'events', element: page(async () => (await import('../features/events/EventsPage')).EventsPage) },
+              { path: 'events/:eid', element: page(async () => (await import('../features/events/EventDetailPage')).EventDetailPage) },
+              { path: 'members', element: page(async () => (await import('../features/members/MembersPage')).MembersPage) },
+              { path: 'profile', element: page(async () => (await import('../features/profile/ProfilePage')).ProfilePage) },
+              { path: 'settings', element: page(async () => (await import('../features/groups/SettingsPage')).SettingsPage) },
+              { path: 'admin', element: page(async () => (await import('../features/admin/AdminPage')).AdminPage) },
             ],
           },
         ],

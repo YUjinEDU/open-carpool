@@ -31,6 +31,19 @@ export default defineConfig(({ mode }) => {
         '/api/naver/reverse-geocode': naverProxy('/api/naver/reverse-geocode', '/map-reversegeocode/v2/gc', env),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Vendor chunks change far less often than app code, so browsers keep them cached across deploys.
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined;
+            if (/[\\/]node_modules[\\/](firebase|@firebase)[\\/]/.test(id)) return 'firebase';
+            if (/[\\/]node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/.test(id)) return 'react';
+            return undefined;
+          },
+        },
+      },
+    },
     preview: {
       host: '0.0.0.0',
       port: 4173,
