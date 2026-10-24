@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { AlertTriangle, Car, ChevronRight, MapPin } from 'lucide-react';
+import { AlertTriangle, Car, ChevronRight, MapPin, UserX } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
 import { addDays, today } from '../../domain/dates';
 import { formatDate, joinNames } from '../../shared/lib/format';
@@ -42,7 +42,10 @@ export function NextTripCard({ next: { crew, trip }, names }: NextTripCardProps)
         : t('groupHome.upcoming');
   const time = legTime(crew, trip.leg);
   const needsDriver = trip.driverId === null;
+  // Marked absent: the card stays (badge + "I'm back") instead of jumping to the next trip.
+  const absent = trip.absentIds.includes(me.uid);
   const headline = needsDriver ? t('groupHome.needsDriver') : trip.driverId === me.uid ? t('groupHome.youDrive') : t('groupHome.drives', { name: name(trip.driverId) });
+  const pickup = crew.pickupNote || (crew.captainId === me.uid ? t('groupHome.pickupUnsetCaptain') : t('groupHome.pickupUnset'));
   const riders = trip.riderIds.map((uid) => ({ name: name(uid) }));
   const remaining = minutesUntilCutoff(trip.date, group.policy.absenceCutoffHour, now, GROUP_TZ);
   const deadline = addDays(trip.date, -1);
@@ -61,7 +64,9 @@ export function NextTripCard({ next: { crew, trip }, names }: NextTripCardProps)
             {formatDate(trip.date, i18n.language)} {t(trip.leg === 'out' ? 'groupHome.departs' : 'groupHome.returns', { time })}
           </p>
         </div>
-        {needsDriver ? (
+        {absent ? (
+          <Badge icon={<UserX />} data-testid="next-trip-absent">{t('trip.absentBadge')}</Badge>
+        ) : needsDriver ? (
           <Badge variant="warn" icon={<AlertTriangle />}>{t('trip.status.needs_driver')}</Badge>
         ) : (
           <Badge variant="brand">{t('trip.status.planned')}</Badge>
@@ -76,9 +81,10 @@ export function NextTripCard({ next: { crew, trip }, names }: NextTripCardProps)
           <p className="text-title-1 text-ink">
             {needsDriver ? headline : <span data-testid="trip-driver">{headline}</span>}
           </p>
+          {absent && <p className="mt-0.5 text-sub text-ink-2">{t('trip.youAbsent')}</p>}
           <p className="mt-1 flex items-center gap-1.5 text-sub text-ink-2">
             <MapPin aria-hidden="true" className="size-4 shrink-0" />
-            <span className="truncate">{crew.pickupNote || crew.name}</span>
+            <span className="truncate">{pickup}</span>
           </p>
         </div>
       </div>

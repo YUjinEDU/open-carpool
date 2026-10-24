@@ -1,5 +1,5 @@
 import { assertNever } from '../../domain/assert';
-import { today } from '../../domain/dates';
+import { today, zonedTime } from '../../domain/dates';
 import { isPastCutoff } from '../../domain/planning';
 import { plateAllowed } from '../../domain/policies';
 import type { Crew, GroupPolicy, Member, Trip, TripStatus } from '../../domain/types';
@@ -19,7 +19,7 @@ export interface TripActions {
 
 export interface TripActionContext {
   readonly me: Pick<Member, 'uid' | 'canDrive' | 'plateLastDigit'>;
-  readonly crew: Pick<Crew, 'memberIds' | 'captainId'>;
+  readonly crew: Pick<Crew, 'memberIds' | 'captainId' | 'outTime' | 'backTime'>;
   readonly now: Date;
   readonly policy: GroupPolicy;
   readonly tz: string;
@@ -38,6 +38,17 @@ export function isOpenTrip(status: TripStatus): boolean {
   }
 }
 
+/**
+ * Whether the leg's departure time has passed: on the trip date from the crew's leg time on (all day
+ * when the crew has no time for that leg), and on every later day. Completion is offered from then.
+ */
+export function hasDeparted(trip: Pick<Trip, 'date' | 'leg'>, crew: Pick<Crew, 'outTime' | 'backTime'>, now: Date, tz: string): boolean {
+  const date = today(tz, now);
+  if (date !== trip.date) return date > trip.date;
+  const time = trip.leg === 'out' ? crew.outTime : crew.backTime;
+  return !time || zonedTime(now, tz) >= time;
+}
+
 export function tripActions(trip: Trip, { me, crew, now, policy, tz }: TripActionContext): TripActions {
   const isMember = crew.memberIds.includes(me.uid);
   const open = isMember && isOpenTrip(trip.status) && !trip.applied;
@@ -49,7 +60,7 @@ export function tripActions(trip: Trip, { me, crew, now, policy, tz }: TripActio
     absence: open && beforeCutoff ? (isAbsent ? 'mark-back' : 'mark-absent') : null,
     cantDrive: open && isDriver,
     volunteer: open && trip.status === 'needs_driver' && !isAbsent && mayDriveToday,
-    done: open && trip.driverId !== null && (isDriver || crew.captainId === me.uid) && today(tz, now) >= trip.date,
+    done: open && trip.driverId !== null && (isDriver || crew.captainId === me.uid) && hasDeparted(trip, crew, now, tz),
     completed: trip.applied,
   };
 }

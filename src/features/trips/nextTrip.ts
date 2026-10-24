@@ -15,10 +15,13 @@ export const compareTrips = (a: Trip, b: Trip): number =>
 
 const sortKey = ({ crew, trip }: CrewTrip): string => `${trip.date} ${legTime(crew, trip.leg)} ${trip.leg}`;
 
-/** My earliest open trip from today on (absent trips skipped). */
-export function pickNextTrip(items: readonly CrewTrip[], meUid: string, todayDate: string): CrewTrip | null {
+/**
+ * My earliest open trip from today on. A trip I am absent from still counts: Home keeps showing it with
+ * the absent badge and "I'm back" instead of jumping ahead, so a mis-tap is one tap to undo.
+ */
+export function pickNextTrip(items: readonly CrewTrip[], todayDate: string): CrewTrip | null {
   const mine = items
-    .filter(({ trip }) => isOpenTrip(trip.status) && !trip.applied && trip.date >= todayDate && !trip.absentIds.includes(meUid))
+    .filter(({ trip }) => isOpenTrip(trip.status) && !trip.applied && trip.date >= todayDate)
     .sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
   return mine[0] ?? null;
 }

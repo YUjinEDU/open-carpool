@@ -31,6 +31,13 @@ export function zonedDateHour(now: Date, tz: string = DEFAULT_TZ): ZonedDateHour
   return { date: `${part('year')}-${part('month')}-${part('day')}`, hour: Number(part('hour')) };
 }
 
+/** Local wall-clock time of an instant as 'HH:MM' in the given time zone (compares with crew leg times). */
+export function zonedTime(now: Date, tz: string = DEFAULT_TZ): string {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes): string => parts.find((p) => p.type === type)?.value ?? '00';
+  return `${part('hour')}:${part('minute')}`;
+}
+
 export function today(tz: string = DEFAULT_TZ, now: Date = new Date()): string {
   return zonedDateHour(now, tz).date;
 }

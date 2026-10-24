@@ -4,7 +4,7 @@ import { tripActions, type TripActionContext } from './tripActions';
 
 const TZ = 'Asia/Seoul';
 const policy: GroupPolicy = { costMode: 'rotation', absenceCutoffHour: 21, plateRotation: 'none' };
-const crew = { memberIds: ['a', 'b', 'c'], captainId: 'c' };
+const crew = { memberIds: ['a', 'b', 'c'], captainId: 'c', outTime: '08:00', backTime: '18:30' };
 /** KST wall-clock instant. */
 const kst = (date: string, time: string): Date => new Date(`${date}T${time}:00+09:00`);
 
@@ -82,9 +82,23 @@ describe('tripActions completion', () => {
     expect(tripActions(trip(), ctx('a', kst('2026-10-26', '23:59'))).done).toBe(false);
   });
 
-  it('is offered to the driver from the trip date on', () => {
-    expect(tripActions(trip(), ctx('a', kst('2026-10-27', '00:00'))).done).toBe(true);
+  it('is hidden on the trip date before the leg departs (a sick driver must still see "can\'t drive")', () => {
+    const morning = tripActions(trip(), ctx('a', kst('2026-10-27', '07:59')));
+    expect(morning.done).toBe(false);
+    expect(morning.cantDrive).toBe(true);
+    expect(tripActions(trip(), ctx('a', kst('2026-10-27', '00:00'))).done).toBe(false);
+  });
+
+  it('is offered to the driver from the departure time on, and on every later day', () => {
+    expect(tripActions(trip(), ctx('a', kst('2026-10-27', '08:00'))).done).toBe(true);
+    expect(tripActions(trip({ id: '2026-10-27_back', leg: 'back' }), ctx('a', kst('2026-10-27', '18:29'))).done).toBe(false);
+    expect(tripActions(trip({ id: '2026-10-27_back', leg: 'back' }), ctx('a', kst('2026-10-27', '18:30'))).done).toBe(true);
     expect(tripActions(trip(), ctx('a', kst('2026-10-29', '10:00'))).done).toBe(true);
+  });
+
+  it('treats a leg without a time as departed all day', () => {
+    const noTime = ctx('a', kst('2026-10-27', '00:10'), { crew: { ...crew, outTime: null } });
+    expect(tripActions(trip(), noTime).done).toBe(true);
   });
 
   it('is offered to the captain but not to other riders', () => {
