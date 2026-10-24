@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "forbiddenTitle": "You cannot view this page",
+    "forbiddenBody": "Only group admins can see the dashboard.",
+    "backToGroup": "Go to group",
+    "window": "Last 30 days",
+    "stats": {
+      "participation": "Participation",
+      "trips": "Trips",
+      "seats": "Seats filled",
+      "members": "Active members",
+      "crews": "Active crews",
+      "distance": "Distance saved",
+      "co2": "CO2 saved"
+    },
+    "assumed": "Estimate",
+    "estimateUnavailable": "Needs a group destination and member areas",
+    "km": "{{value}} km",
+    "kg": "{{value}} kg",
+    "percent": "{{value}}%",
+    "none": "-",
+    "footnote": "Estimate: for every trip we add the straight-line distance from each rider's area to the group destination × {{factor}}; CO2 uses {{co2}} kg per km.",
+    "crewsTitle": "Crews",
+    "crewsDescription": "Trips and ledger spread over the last 30 days",
+    "crewsEmpty": "No active crews yet",
+    "crewLine": "{{trips}} trips · ledger spread {{spread}} rides",
+    "churn": {
+      "ok": "Steady",
+      "declining": "Attendance down",
+      "stalled": "Stalled"
+    },
+    "empty": "No trips recorded yet",
+    "emptyHint": "Trips show up here once crews mark them done.",
+    "export": {
+      "title": "Export",
+      "description": "Download every crew's trips for the chosen month as CSV. Columns: date, leg, crew, driver, riders, absent, status, completed by, completed at{{cost}}.",
+      "costColumns": ", cost, currency",
+      "month": "Month",
+      "button": "Export CSV",
+      "busy": "Exporting",
+      "done": "Downloaded"
+    },
+    "loadError": "Could not load",
+    "retry": "Try again"
+  },
+  "rideboard": {
+    "title": "Events",
+    "new": "Create event",
+    "empty": "No upcoming events",
+    "emptyHint": "Share one-off rides to workshops, matches and the like.",
+    "seatsLeft": "{{count}} seats left",
+    "full": "Full",
+    "noCars": "No cars",
+    "when": "{{date}} {{time}}",
+    "close": "Close",
+    "form": {
+      "title": "Create event",
+      "titleLabel": "Title",
+      "date": "Date",
+      "time": "Time",
+      "place": "Place",
+      "submit": "Create"
+    },
+    "detail": {
+      "notFound": "Event not found",
+      "back": "Back",
+      "cars": "Cars",
+      "carsEmpty": "No cars yet",
+      "carsEmptyHint": "If you can drive, offer your car.",
+      "carLine": "{{seats}} seats · {{riders}} riding",
+      "ride": "Ride",
+      "riding": "Riding",
+      "leave": "Leave",
+      "mine": "My car",
+      "offer": "Offer a car",
+      "editCar": "Edit my car",
+      "fullBanner": "Every car is full. More cars would help."
+    },
+    "carForm": {
+      "title": "Offer a car",
+      "seats": "Free seats",
+      "note": "Note",
+      "notePlaceholder": "Meeting point, departure time",
+      "submit": "Offer",
+      "optional": "(optional)"
+    }
+  },
+  "platePartners": {
+    "title": "Plate partners",
+    "oddEven": "With odd-even rotation one of you can always drive.",
+    "fiveDay": "Your five-day rotation rest days differ.",
+    "needsPlate": "Add your plate's last digit in your profile to find partners.",
+    "empty": "No nearby partner with an overlapping schedule yet.",
+    "plates": "Plates ending {{a}} · {{b}}"
+  }
+}

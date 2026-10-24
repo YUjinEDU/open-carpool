@@ -1,10 +1,13 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import type { Locale } from '../../domain/types';
+import enExt from './en.ext.json';
 import en from './en.json';
+import koExt from './ko.ext.json';
 import ko from './ko.json';
 
-export const resources = { ko: { translation: ko }, en: { translation: en } } as const;
+/** The *.ext.json files add whole top-level namespaces; the parity test forbids overlapping ones. */
+export const resources = { ko: { translation: { ...ko, ...koExt } }, en: { translation: { ...en, ...enExt } } } as const;
 
 export const LOCALES: readonly Locale[] = ['ko', 'en'];
 

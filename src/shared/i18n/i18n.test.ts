@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { detectLocale } from '.';
+import enExt from './en.ext.json';
 import en from './en.json';
+import koExt from './ko.ext.json';
 import ko from './ko.json';
 
 const keysOf = (tree: object, prefix = ''): string[] =>
@@ -11,6 +13,15 @@ const keysOf = (tree: object, prefix = ''): string[] =>
 describe('translations', () => {
   it('ko and en define exactly the same keys', () => {
     expect(keysOf(ko).sort()).toEqual(keysOf(en).sort());
+  });
+
+  it('ko and en extension files define exactly the same keys', () => {
+    expect(keysOf(koExt).sort()).toEqual(keysOf(enExt).sort());
+  });
+
+  it('extension files only add namespaces the base files do not have', () => {
+    expect(Object.keys(koExt).filter((ns) => ns in ko)).toEqual([]);
+    expect(Object.keys(enExt).filter((ns) => ns in en)).toEqual([]);
   });
 
   it('cover the keys emitted by the domain layer', () => {

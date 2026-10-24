@@ -1,0 +1,97 @@
+{
+  "dashboard": {
+    "title": "대시보드",
+    "forbiddenTitle": "볼 수 없는 페이지예요",
+    "forbiddenBody": "그룹 관리자만 대시보드를 볼 수 있어요.",
+    "backToGroup": "그룹으로 가기",
+    "window": "최근 30일",
+    "stats": {
+      "participation": "참여율",
+      "trips": "운행 수",
+      "seats": "좌석 활용",
+      "members": "활동 멤버",
+      "crews": "운영 중인 크루",
+      "distance": "절감 거리",
+      "co2": "CO2 절감"
+    },
+    "assumed": "추정값",
+    "estimateUnavailable": "목적지와 멤버 동네가 있어야 계산돼요",
+    "km": "{{value}}km",
+    "kg": "{{value}}kg",
+    "percent": "{{value}}%",
+    "none": "-",
+    "footnote": "추정값: 운행마다 탑승자 동네에서 그룹 목적지까지의 직선거리 × {{factor}}를 더했고, CO2는 km당 {{co2}}kg로 계산했어요.",
+    "crewsTitle": "크루",
+    "crewsDescription": "최근 30일 운행과 장부 차이",
+    "crewsEmpty": "아직 운영 중인 크루가 없어요",
+    "crewLine": "운행 {{trips}}회 · 장부 차이 {{spread}}회",
+    "churn": {
+      "ok": "안정",
+      "declining": "출석 감소",
+      "stalled": "운행 멈춤"
+    },
+    "empty": "아직 기록된 운행이 없어요",
+    "emptyHint": "크루가 운행을 완료하면 여기에 쌓여요.",
+    "export": {
+      "title": "내보내기",
+      "description": "선택한 달의 모든 크루 운행을 CSV로 받아요. 열: 날짜, 구간, 크루, 운전자, 탑승자, 결석, 상태, 완료자, 완료 시각{{cost}}.",
+      "costColumns": ", 비용, 통화",
+      "month": "월",
+      "button": "CSV 내보내기",
+      "busy": "내보내는 중",
+      "done": "내려받았어요"
+    },
+    "loadError": "불러오지 못했어요",
+    "retry": "다시 시도"
+  },
+  "rideboard": {
+    "title": "이벤트",
+    "new": "이벤트 만들기",
+    "empty": "예정된 이벤트가 없어요",
+    "emptyHint": "워크숍이나 경기처럼 한 번 가는 길을 함께 타요.",
+    "seatsLeft": "좌석 {{count}} 남음",
+    "full": "꽉 찼어요",
+    "noCars": "차 없음",
+    "when": "{{date}} {{time}}",
+    "close": "닫기",
+    "form": {
+      "title": "이벤트 만들기",
+      "titleLabel": "제목",
+      "date": "날짜",
+      "time": "시간",
+      "place": "장소",
+      "submit": "만들기"
+    },
+    "detail": {
+      "notFound": "이벤트를 찾을 수 없어요",
+      "back": "뒤로",
+      "cars": "차",
+      "carsEmpty": "아직 등록된 차가 없어요",
+      "carsEmptyHint": "운전할 수 있으면 차를 등록해 주세요.",
+      "carLine": "좌석 {{seats}} · {{riders}}명 탑승",
+      "ride": "타기",
+      "riding": "탑승 중",
+      "leave": "내리기",
+      "mine": "내 차",
+      "offer": "차 등록",
+      "editCar": "내 차 수정",
+      "fullBanner": "모든 차가 꽉 찼어요. 차를 더 등록해 주시면 좋아요."
+    },
+    "carForm": {
+      "title": "차 등록",
+      "seats": "빈 좌석",
+      "note": "메모",
+      "notePlaceholder": "출발 장소, 시간 등",
+      "submit": "등록",
+      "optional": "(선택)"
+    }
+  },
+  "platePartners": {
+    "title": "부제 짝꿍",
+    "oddEven": "홀짝제에서도 매일 한 대는 운행할 수 있는 짝이에요.",
+    "fiveDay": "5부제에서 쉬는 요일이 서로 다른 짝이에요.",
+    "needsPlate": "프로필에 차량 끝번호를 적으면 짝을 찾아 드려요.",
+    "empty": "가까이 살고 일정이 겹치는 짝을 아직 못 찾았어요.",
+    "plates": "끝번호 {{a}} · {{b}}"
+  }
+}
