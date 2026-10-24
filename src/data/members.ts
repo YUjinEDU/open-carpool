@@ -56,6 +56,11 @@ export async function setMemberRole(gid: string, uid: string, role: Exclude<Memb
   await updateDoc(memberRef(gid, uid), { role });
 }
 
+/** Admin action: removed members cannot re-activate themselves (rules enforce it). */
+export async function removeMember(gid: string, uid: string): Promise<void> {
+  await updateDoc(memberRef(gid, uid), { status: 'removed' });
+}
+
 export async function leaveGroup(gid: string, uid: string): Promise<void> {
   await updateDoc(memberRef(gid, uid), { status: 'left' });
 }

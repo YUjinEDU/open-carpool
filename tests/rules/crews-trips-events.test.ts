@@ -86,6 +86,12 @@ describe('trips', () => {
     await assertFails(tripDoc('admin', APPLIED_TRIP).update({ applied: false }));
   });
 
+  it('freezes an applied trip except for its cost', async () => {
+    await assertFails(tripDoc('alice', APPLIED_TRIP).update({ driverId: 'bob' }));
+    await assertFails(tripDoc('admin', APPLIED_TRIP).update({ riderIds: [] }));
+    await assertSucceeds(tripDoc('alice', APPLIED_TRIP).update({ cost: { totalAmount: 12, currency: 'USD' } }));
+  });
+
   it('denies deleting trips', async () => {
     await assertFails(tripDoc('alice').delete());
   });

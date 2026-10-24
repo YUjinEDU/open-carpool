@@ -36,6 +36,13 @@ export class InviteNotFoundError extends Error {
   }
 }
 
+export class MembershipRemovedError extends Error {
+  constructor(readonly groupId: string) {
+    super(`membership in ${groupId} was removed by an admin`);
+    this.name = 'MembershipRemovedError';
+  }
+}
+
 /** No 0/O, 1/I/L: codes are read aloud and typed from screenshots. */
 export const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const INVITE_CODE_LENGTH = 8;
@@ -100,7 +107,9 @@ export async function joinGroup(code: string, profile: Actor): Promise<string> {
       newMember({ uid: profile.uid, displayName: profile.displayName, role: 'member', inviteCode: invite.id }),
     );
   } else if (existing.data().status === 'left') {
-    await updateDoc(ref, { status: 'active' });
+    await updateDoc(ref, { status: 'active', role: 'member', inviteCode: invite.id });
+  } else if (existing.data().status === 'removed') {
+    throw new MembershipRemovedError(invite.groupId);
   }
   return invite.groupId;
 }

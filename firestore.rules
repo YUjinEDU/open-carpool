@@ -82,9 +82,22 @@ service cloud.firestore {
               && getAfter(groupPath(gid)).data.ownerId == me())
           );
 
-        allow update: if signedIn() && unchanged(['uid', 'inviteCode', 'joinedAt']) && (
-          (memberId == me() && unchanged(['role']))
+        allow update: if signedIn() && unchanged(['uid', 'joinedAt']) && (
+          // Self edits while active. A member may leave, but cannot restore a removed membership.
+          (memberId == me()
+            && resource.data.status == 'active'
+            && unchanged(['role', 'inviteCode'])
+            && request.resource.data.status in ['active', 'left'])
+          // Re-join after leaving: needs the group's current invite code and comes back as a plain member.
+          || (memberId == me()
+            && resource.data.status == 'left'
+            && request.resource.data.status == 'active'
+            && request.resource.data.role == 'member'
+            && request.resource.data.inviteCode == get(groupPath(gid)).data.inviteCode
+            && emailDomainAllowed(get(groupPath(gid))))
+          // Admins manage roles and removal, never ownership.
           || (isAdmin(gid)
+              && unchanged(['inviteCode'])
               && resource.data.role != 'owner'
               && request.resource.data.role != 'owner')
         );
@@ -103,9 +116,10 @@ service cloud.firestore {
           allow read: if isActiveMember(gid);
           allow create: if isActiveMember(gid) && (isCrewMember(gid, cid) || isAdmin(gid));
           // Once applied to the ledger a trip stays applied (no double counting, no undo).
+          // Once applied to the ledger a trip is frozen (no undo, no rewriting who drove); only cost may be filled in.
           allow update: if isActiveMember(gid)
             && (isCrewMember(gid, cid) || isAdmin(gid))
-            && (resource.data.applied != true || request.resource.data.applied == true);
+            && (resource.data.applied != true || onlyChanged(['cost']));
         }
       }
 

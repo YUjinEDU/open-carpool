@@ -121,6 +121,21 @@ describe('member updates', () => {
     await assertFails(memberDoc('owner', 'alice').update({ role: 'owner' }));
   });
 
+  it('lets a member who left re-join only with the current invite code, as a plain member', async () => {
+    await env.withSecurityRulesDisabled((ctx) => ctx.firestore().doc(`groups/${GID}/members/carol`).update({ status: 'left', role: 'admin' }));
+    await assertFails(memberDoc('carol').update({ status: 'active' }));
+    await assertFails(memberDoc('carol').update({ status: 'active', role: 'member', inviteCode: 'WRONGCOD' }));
+    await assertFails(memberDoc('carol').update({ status: 'active', role: 'admin', inviteCode: CODE }));
+    await assertSucceeds(memberDoc('carol').update({ status: 'active', role: 'member', inviteCode: CODE }));
+  });
+
+  it('denies a removed member re-activating themselves, and lets admins remove members', async () => {
+    await assertSucceeds(memberDoc('admin', 'carol').update({ status: 'removed' }));
+    await assertFails(memberDoc('carol').update({ status: 'active' }));
+    await assertFails(memberDoc('carol').update({ status: 'active', role: 'member', inviteCode: CODE }));
+    await assertFails(groupDoc('carol').get());
+  });
+
   it("denies an admin changing the owner's role", async () => {
     await assertFails(memberDoc('admin', 'owner').update({ role: 'member' }));
   });

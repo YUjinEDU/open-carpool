@@ -46,7 +46,8 @@ export interface Group {
 }
 
 export type MemberRole = 'owner' | 'admin' | 'member';
-export type MemberStatus = 'active' | 'left';
+/** 'left' = member left (may re-join with the current invite code); 'removed' = removed by an admin. */
+export type MemberStatus = 'active' | 'left' | 'removed';
 
 export interface DaySchedule { out?: string; back?: string } // 'HH:MM'
 export type WeeklySchedule = Partial<Record<Weekday, DaySchedule>>;
