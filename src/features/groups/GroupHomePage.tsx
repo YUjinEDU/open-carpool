@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { CalendarClock, Check, ChevronRight, Moon, Share2, Users } from 'lucide-react';
 import { ErrorBanner } from '../../app/fallbacks';
 import { DIGEST_HOUR, useDigestNotification, type Digest } from '../../app/notifications';
@@ -14,6 +14,7 @@ import type { Crew, Member, Trip } from '../../domain/types';
 import { joinNames } from '../../shared/lib/format';
 import { AvatarStack, Badge, Banner, Button, Card, CardHeader, EmptyState, IconButton, List, ListItem, Skeleton, TopBar } from '../../shared/ui';
 import { useCrews } from '../crews/hooks';
+import { ProposalBanner } from '../crews/ProposalBanner';
 import { NavLinks } from '../map/NavLinks';
 import { useMembers } from '../members/hooks';
 import { DayCell } from '../trips/DayCell';
@@ -51,12 +52,19 @@ const crewStatusBadge = (status: Crew['status'], t: TFunction) =>
 export function GroupHomePage() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { group, me } = useGroup();
   const crews = useCrews(group.id);
   const [members, reloadMembers] = useMembers(group.id);
   const [tripsByCrew, setTripsByCrew] = useState<TripsByCrew>({});
   const [switcher, setSwitcher] = useState(false);
   const [invite, setInvite] = useState(false);
+  // Arriving from the create wizard: the success sheet with the invite link opens over Home.
+  const [created, setCreated] = useState(() => Boolean((location.state as { created?: boolean } | null)?.created));
+  const closeCreated = () => {
+    setCreated(false);
+    navigate(location.pathname, { replace: true, state: null });
+  };
   const [digestDismissed, setDigestDismissed] = useState(false);
   const onTrips = useCallback((cid: string, trips: readonly Trip[]) => setTripsByCrew((prev) => ({ ...prev, [cid]: trips })), []);
 
@@ -74,7 +82,8 @@ export function GroupHomePage() {
     () => activeMine.flatMap((crew) => (tripsByCrew[crew.id] ?? []).map((trip) => ({ crew, trip }))),
     [activeMine, tripsByCrew],
   );
-  const next = pickNextTrip(allMine, me.uid, todayDate);
+  const next = pickNextTrip(allMine, todayDate);
+  const pendingProposals = useMemo(() => mine.filter((c) => c.status === 'proposed' && !c.acceptedIds.includes(me.uid)), [mine, me.uid]);
   const week = useMemo(
     () =>
       allMine
@@ -104,6 +113,8 @@ export function GroupHomePage() {
   const hasProfile = Object.keys(me.schedule).length > 0;
   const isOwner = me.role === 'owner';
   const gettingStarted = isOwner && crews.status === 'ready' && mine.length === 0 && members.status === 'ready' && activeMembers.length <= 1;
+  // A crew needs two people: alone, every "propose" entry points at the invite link instead.
+  const canPropose = members.status === 'ready' && activeMembers.length >= 2;
   const loading = crews.status === 'loading' || members.status === 'loading';
   const go = (href: string) => (event: MouseEvent<HTMLElement>) => {
     event.preventDefault();
@@ -135,13 +146,17 @@ export function GroupHomePage() {
           </Banner>
         )}
 
-        {!hasProfile && (
+        {pendingProposals.map((crew) => (
+          <ProposalBanner key={crew.id} crew={crew} onOpen={() => navigate(`/g/${group.id}/crews/${crew.id}`)} />
+        ))}
+
+        {!hasProfile && !gettingStarted && (
           <Banner
             variant="info"
             icon={<CalendarClock />}
             data-testid="home-empty-profile"
             action={
-              <Button size="sm" variant="secondary" onClick={() => navigate(`/g/${group.id}/profile`)}>
+              <Button variant="secondary" onClick={() => navigate(`/g/${group.id}/profile`)}>
                 {t('groupHome.setSchedule')}
               </Button>
             }
@@ -175,9 +190,23 @@ export function GroupHomePage() {
           <Card variant="tonal" as="section">
             <CardHeader title={t('groupHome.gettingStarted')} description={t('groupHome.gettingStartedHint')} />
             <List inset={false} className="-mx-4 mt-2">
-              <ListItem title={t('groupHome.stepInvite')} onClick={() => setInvite(true)} chevron />
+              <ListItem
+                title={t('groupHome.stepInvite')}
+                description={activeMembers.length > 1 ? t('groupHome.stepInviteDone', { count: activeMembers.length }) : undefined}
+                onClick={() => setInvite(true)}
+                trailing={activeMembers.length > 1 ? <Check aria-hidden="true" className="size-5 text-success-ink" /> : undefined}
+                chevron
+                data-testid="home-step-invite"
+              />
               <ListItem title={t('groupHome.stepSchedule')} href={`/g/${group.id}/profile`} onClick={go(`/g/${group.id}/profile`)} trailing={hasProfile ? <Check aria-hidden="true" className="size-5 text-success-ink" /> : undefined} />
-              <ListItem title={t('groupHome.stepCrew')} href={crewsHref} onClick={go(crewsHref)} />
+              <ListItem
+                title={t('groupHome.stepCrew')}
+                description={canPropose ? undefined : t('groupHome.stepCrewLocked')}
+                href={canPropose ? crewsHref : undefined}
+                onClick={canPropose ? go(crewsHref) : undefined}
+                disabled={!canPropose}
+                data-testid="home-step-crew"
+              />
             </List>
           </Card>
         )}
@@ -187,9 +216,15 @@ export function GroupHomePage() {
             <EmptyState
               icon={<Users />}
               title={t('groupHome.noCrews')}
-              description={t('groupHome.noCrewsHint')}
+              description={canPropose ? t('groupHome.noCrewsHint') : t('groupHome.inviteFirstHint')}
               data-testid="my-crews-empty"
-              action={<Button onClick={() => navigate(crewsHref)}>{t('groupHome.proposeCrew')}</Button>}
+              action={
+                canPropose ? (
+                  <Button onClick={() => navigate(crewsHref)}>{t('groupHome.proposeCrew')}</Button>
+                ) : (
+                  <Button leadingIcon={<Share2 />} onClick={() => setInvite(true)}>{t('groupHome.stepInvite')}</Button>
+                )
+              }
             />
           </Card>
         )}
@@ -256,6 +291,7 @@ export function GroupHomePage() {
       </PageBody>
       <GroupSwitcherSheet open={switcher} onClose={() => setSwitcher(false)} current={group} />
       <InviteSheet open={invite} onClose={() => setInvite(false)} group={group} />
+      <InviteSheet open={created} onClose={closeCreated} group={group} title={t('createGroup.created')} description={t('createGroup.createdHint')} withTestIds />
     </>
   );
 }

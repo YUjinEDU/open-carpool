@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router';
 import { useSession } from '../../app/providers/session';
 import { PageBody } from '../../app/shell/PageBody';
 import { createGroup } from '../../data/groups';
-import { defaultPolicyFor, legalNoticeKey } from '../../domain/policies';
+import { defaultPolicyFor } from '../../domain/policies';
 import { currentLocale } from '../../shared/i18n';
 import { useAction } from '../../shared/lib/useAction';
-import { Banner, Button, Card, List, ListItem, TopBar } from '../../shared/ui';
+import { Button, Card, List, ListItem, TopBar } from '../../shared/ui';
 import type { Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
 import { GroupBasicsFields, type GroupBasics } from './GroupBasicsFields';
+import { LegalNotice } from './LegalNotice';
 
 type Step = 1 | 2 | 3;
 
@@ -43,7 +44,8 @@ export function CreateGroupPage() {
       },
       profile,
     );
-    navigate(`/g/${group.id}/settings`);
+    // replace: the back arrow must not return to an empty wizard that looks like "not created".
+    navigate(`/g/${group.id}`, { replace: true, state: { created: true } });
   });
 
   const next = () => {
@@ -98,23 +100,19 @@ export function CreateGroupPage() {
                   <ListItem title={t('createGroup.summaryPlate')} trailing={<span className="text-body text-ink">{t(`plateRotation.${policy.plateRotation}`)}</span>} />
                 </List>
               </Card>
-              <Banner variant="info" data-testid="group-legal-notice">
-                {t(legalNoticeKey({ country: basics.country, policy }))}
-              </Banner>
+              <LegalNotice group={{ country: basics.country, policy }} data-testid="group-legal-notice" />
               <p className="text-caption text-ink-3">{t('createGroup.summaryHint')}</p>
             </>
           )}
 
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {step === 1 ? (
-              <span aria-hidden="true" />
-            ) : (
+          <div className={step === 1 ? 'mt-2 grid gap-2' : 'mt-2 grid grid-cols-2 gap-2'}>
+            {step > 1 && (
               <Button type="button" variant="secondary" size="lg" onClick={back} data-testid="group-back">
                 {t('common.previous')}
               </Button>
             )}
             {step < 3 ? (
-              <Button type="submit" size="lg" data-testid="group-next">
+              <Button type="submit" size="lg" variant={step === 2 && !destination ? 'secondary' : 'primary'} data-testid="group-next">
                 {step === 2 && !destination ? t('createGroup.later') : t('common.next')}
               </Button>
             ) : (

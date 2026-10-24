@@ -1,8 +1,9 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Sparkles, Users } from 'lucide-react';
+import { Plus, Share2, Sparkles, Users } from 'lucide-react';
 import { ErrorBanner } from '../../app/fallbacks';
 import { useGroup } from '../../app/providers/group';
+import { InviteSheet } from '../../app/shell/InviteShare';
 import { PageBody } from '../../app/shell/PageBody';
 import { suggestCrews } from '../../domain/suggest';
 import type { Member } from '../../domain/types';
@@ -32,6 +33,7 @@ export function CrewsPage() {
   const crews = useCrews(group.id);
   const [members, reloadMembers] = useMembers(group.id);
   const [form, setForm] = useState<FormState>({ open: false });
+  const [invite, setInvite] = useState(false);
   const active = useMemo<readonly Member[]>(
     () => (members.status === 'ready' ? members.data.filter((m) => m.status === 'active') : []),
     [members],
@@ -43,6 +45,9 @@ export function CrewsPage() {
     [active, hasProfile, me.uid],
   );
   const loading = crews.status === 'loading' || members.status === 'loading';
+  // Alone in the group there is nobody to propose to: every "propose" entry opens the invite link instead.
+  const canPropose = members.status === 'ready' && active.length >= 2;
+  const startProposal = (memberIds: readonly string[] = []) => (canPropose ? setForm({ open: true, memberIds }) : setInvite(true));
 
   if (form.open) {
     return (
@@ -68,7 +73,10 @@ export function CrewsPage() {
     <>
       <TopBar
         title={t('crews.title')}
-        trailing={<IconButton label={t('crews.new')} icon={<Plus />} onClick={() => setForm({ open: true, memberIds: [] })} data-testid="crew-new" />}
+        trailing={
+          // Disabled until the members are known: before that we cannot tell a proposal from an invite.
+          <IconButton label={t('crews.new')} icon={<Plus />} disabled={members.status !== 'ready'} onClick={() => startProposal()} data-testid="crew-new" />
+        }
       />
       <PageBody nav className="gap-6">
         {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={crews.retry} />}
@@ -87,13 +95,19 @@ export function CrewsPage() {
               <Card variant="tonal" padding="none">
                 <EmptyState
                   icon={<Users />}
-                  title={t('crews.mineEmpty')}
-                  description={t('crews.mineEmptyHint')}
+                  title={canPropose ? t('crews.mineEmpty') : t('groupHome.inviteFirst')}
+                  description={canPropose ? t('crews.mineEmptyHint') : t('groupHome.inviteFirstHint')}
                   data-testid="crews-mine-empty"
                   action={
-                    <Button leadingIcon={<Plus />} onClick={() => setForm({ open: true, memberIds: [] })}>
-                      {t('crews.create')}
-                    </Button>
+                    canPropose ? (
+                      <Button leadingIcon={<Plus />} onClick={() => startProposal()}>
+                        {t('crews.create')}
+                      </Button>
+                    ) : (
+                      <Button leadingIcon={<Share2 />} onClick={() => setInvite(true)}>
+                        {t('groupHome.stepInvite')}
+                      </Button>
+                    )
                   }
                 />
               </Card>
@@ -132,7 +146,7 @@ export function CrewsPage() {
                         <p className="text-caption text-ink-3">{s.reasons.map((r) => t(r.key, r.params)).join(' · ')}</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="secondary" className="self-start" onClick={() => setForm({ open: true, memberIds: s.memberIds })}>
+                    <Button variant="secondary" className="self-start" onClick={() => startProposal(s.memberIds)}>
                       {t('crews.suggestUse')}
                     </Button>
                   </li>
@@ -141,8 +155,9 @@ export function CrewsPage() {
             )}
           </Section>
         )}
-              <PlatePartners group={group} members={active} me={me} />
+        <PlatePartners group={group} members={active} me={me} />
       </PageBody>
+      <InviteSheet open={invite} onClose={() => setInvite(false)} group={group} />
     </>
   );
 }
