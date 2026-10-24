@@ -21,11 +21,12 @@ export const router = createBrowserRouter([
     children: [
       { path: '/signin', element: page(async () => (await import('../features/auth/SignInPage')).SignInPage) },
       { path: '/signin/finish', element: page(async () => (await import('../features/auth/SignInFinishPage')).SignInFinishPage) },
+      // The invite landing works signed out: it signs the visitor in inline, then joins.
+      { path: '/join/:code', element: page(async () => (await import('../features/groups/JoinPage')).JoinPage) },
       {
         element: <RequireAuth />,
         children: [
           { path: '/', element: page(async () => (await import('../features/groups/MyGroupsPage')).MyGroupsPage) },
-          { path: '/join/:code', element: page(async () => (await import('../features/groups/JoinPage')).JoinPage) },
           { path: '/groups/new', element: page(async () => (await import('../features/groups/CreateGroupPage')).CreateGroupPage) },
           { path: '/me', element: page(async () => (await import('../features/profile/MePage')).MePage) },
           {

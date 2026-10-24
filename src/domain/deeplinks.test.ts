@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { googleLink, kakaoLink, navLinksFor, naverLink } from './deeplinks';
+import { googleLink, inviteNameFrom, invitePath, inviteSharePath, kakaoLink, navLinksFor, naverLink } from './deeplinks';
 
 const dest = { lat: 36.3504, lng: 127.3845, label: '회사 정문 & 주차장' };
 const ENCODED = '%ED%9A%8C%EC%82%AC%20%EC%A0%95%EB%AC%B8%20%26%20%EC%A3%BC%EC%B0%A8%EC%9E%A5';
@@ -28,4 +28,17 @@ describe('navLinksFor', () => {
     expect(navLinksFor('KR', dest).map((l) => l.provider)).toEqual(['naver', 'kakao', 'google']);
     expect(navLinksFor('US', dest).map((l) => l.provider)).toEqual(['google', 'naver', 'kakao']);
   });
-});
+});
+
+describe('invite links', () => {
+  it('encodes the code and carries the group name as a display-only query parameter', () => {
+    expect(invitePath('ABCD2345')).toBe('/join/ABCD2345');
+    expect(inviteSharePath('ABCD2345', ' 다온테크 판교 ')).toBe('/join/ABCD2345?name=%EB%8B%A4%EC%98%A8%ED%85%8C%ED%81%AC%20%ED%8C%90%EA%B5%90');
+  });
+
+  it('reads the name back trimmed and capped, empty when the link has none', () => {
+    expect(inviteNameFrom(new URLSearchParams('name=%20Acme%20'))).toBe('Acme');
+    expect(inviteNameFrom(new URLSearchParams('name=' + 'x'.repeat(200))).length).toBe(80);
+    expect(inviteNameFrom(new URLSearchParams(''))).toBe('');
+  });
+});

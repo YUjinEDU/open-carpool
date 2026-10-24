@@ -16,6 +16,20 @@ export interface NavLink {
 const APP_NAME = 'org.opencarpool';
 const enc = encodeURIComponent;
 
+/** Query parameter a shared invite link carries so the landing can name the group before sign-in. */
+export const INVITE_NAME_PARAM = 'name';
+const INVITE_NAME_MAX = 80;
+
+/** Bare invite path (what the QR encodes and a typed code resolves to). */
+export const invitePath = (code: string): string => `/join/${enc(code)}`;
+
+/** Shared invite path with the group name; the name is display-only and verified after sign-in. */
+export const inviteSharePath = (code: string, groupName: string): string =>
+  `${invitePath(code)}?${INVITE_NAME_PARAM}=${enc(groupName.trim().slice(0, INVITE_NAME_MAX))}`;
+
+/** The group name a landing may show from its own URL, trimmed and capped. Empty when absent. */
+export const inviteNameFrom = (search: URLSearchParams): string => (search.get(INVITE_NAME_PARAM) ?? '').trim().slice(0, INVITE_NAME_MAX);
+
 export function naverLink({ lat, lng, label }: NavDestination): NavLink {
   return {
     provider: 'naver',
