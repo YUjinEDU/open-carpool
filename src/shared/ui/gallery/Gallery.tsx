@@ -310,10 +310,10 @@ export function Gallery() {
 
           <Section id="segmented" title="SegmentedControl" description="2~4개의 배타 선택. 방향키로 이동.">
             <Spec label="md">
-              <SegmentedControl label="구간" options={SEGMENTS} value={segment} onChange={setSegment} />
+              <SegmentedControl label="구간" options={SEGMENTS} value={segment} onChange={(v) => setSegment(v as typeof segment)} />
             </Spec>
             <Spec label="lg · inline">
-              <SegmentedControl label="구간" size="lg" fullWidth={false} options={SEGMENTS} value={segment} onChange={setSegment} />
+              <SegmentedControl label="구간" size="lg" fullWidth={false} options={SEGMENTS} value={segment} onChange={(v) => setSegment(v as typeof segment)} />
             </Spec>
           </Section>
 
