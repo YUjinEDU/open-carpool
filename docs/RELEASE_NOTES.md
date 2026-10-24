@@ -27,8 +27,8 @@
 | 항목 | 명령 | 마지막 결과 |
 |---|---|---|
 | 타입 검사 | `npm run lint` | 0 errors |
-| 단위 테스트 | `npm test` | 32 files / 200 tests |
-| 보안 규칙(에뮬레이터) | `npm run test:rules` | 8 files / 104 tests |
+| 단위 테스트 | `npm test` | 33 files / 224 tests |
+| 보안 규칙(에뮬레이터) | `npm run test:rules` | 8 files / 111 tests |
 | 빌드 | `npm run build` | exit 0 |
 | 실제 브라우저 E2E | `E2E_VIEWPORT=mobile|desktop bun scripts/e2e/crew-slice.ts`, `admin-events-slice.ts` | 각 10/10 |
 
@@ -38,7 +38,7 @@ E2E는 Firebase 에뮬레이터 위에서 두 사용자(서로 다른 origin)로
 
 - **보안(G003)**: 18건 발견. 네이버 프록시에 Firebase ID 토큰 검증, 장부 변경을 운행 정산에 결합(Fagin-Williams 배분을 규칙에서 검증), 크루 수정 분리, 운행 생성 형태 제한, CSP 등 보안 헤더, 개발 프록시의 토큰 전달 차단. 모든 수정은 실패하는 테스트를 먼저 작성.
 - **코드 품질(G005)**: 11건 수정. 계획 저장을 트랜잭션으로(동시 불참·자원 운전 유실 방지), 크루를 떠난 탑승자가 있는 운행 완료, 삭제된 요일 운행 취소, 운전자 가로채기 방지, 이중 탭 방지, 마감 시계 갱신, 롱폴링 자동 감지.
-- **UX·접근성(G004)**: 45건 발견, 수정 진행 중.
+- **UX·접근성(G004)**: 45건 발견. 차단 3건과 주요 항목 대부분 수정: 로그인 전에도 초대 링크로 그룹 이름 확인과 바로 가입, 운행 완료는 출발 시각부터·되돌리기 창 제공, 불참·운전 못 함 뒤 "크루에 알리기" 공유, 크루 제안 수락·거절·철회·일시정지, 그룹 생성 후 홈과 초대 시트로 이동, 44px 터치 영역과 라벨 있는 스위치, 오류는 쉬운 문장의 고정 알림, 해요체 통일, 첫 로그인 시 이름 입력. 동네는 동·구 수준으로만 저장(S-04), Pretendard 글꼴 자체 호스팅(S-13).
 
 ## 알려진 제한
 
@@ -47,12 +47,14 @@ E2E는 Firebase 에뮬레이터 위에서 두 사용자(서로 다른 origin)로
 - CSP는 실제 Vercel 배포에서 아직 검증하지 않았습니다. 커스텀 Auth 도메인을 쓰면 `frame-src`에 추가해야 합니다.
 - 부제 정책이 바뀌어 계획된 운전자가 그날 운전할 수 없게 되면, 관리자 클라이언트가 다시 계획할 때까지 일반 멤버의 재계획이 규칙에서 거부됩니다.
 - 관리자 통계 기간은 30일 고정입니다. 행사는 모든 멤버가 만들 수 있습니다.
+- 크루 설정 수정 화면, 소유자 탈퇴(소유권 이전)와 그룹 삭제는 아직 없습니다(규칙을 새로 설계해야 해서 다음 버전으로 미룸).
+- 크루 통계 카드는 운행 완료 직후 새로고침 전까지 갱신되지 않습니다.
 - 파일럿 그룹은 아직 정하지 않았습니다(사용자 결정 대기).
 
 ## 배포 전 체크리스트
 
 1. Firebase 프로젝트 생성, Auth 공급자(Google·이메일 링크) 활성화, 승인 도메인 추가.
 2. `firebase deploy --only firestore:rules,firestore:indexes`.
-3. Vercel 환경 변수: `VITE_FIREBASE_*`, `FIREBASE_PROJECT_ID`, `VITE_NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`.
+3. Vercel 환경 변수: `VITE_FIREBASE_*`, `FIREBASE_PROJECT_ID`(네이버 프록시 토큰 검증에 필수), `VITE_NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`.
 4. 배포 후 브라우저 콘솔에서 CSP 위반이 없는지 확인.
 5. `develop` → `main` 병합은 사용자가 결정합니다.
