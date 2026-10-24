@@ -1,9 +1,12 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LoadingState } from '../../app/fallbacks';
+import { Plus, Sparkles, Users } from 'lucide-react';
+import { ErrorBanner } from '../../app/fallbacks';
 import { useGroup } from '../../app/providers/group';
+import { PageBody } from '../../app/shell/PageBody';
 import { suggestCrews } from '../../domain/suggest';
 import type { Member } from '../../domain/types';
+import { AvatarStack, Button, Card, EmptyState, IconButton, List, Skeleton, TopBar } from '../../shared/ui';
 import { useMembers } from '../members/hooks';
 import { CrewCard } from './CrewCard';
 import { CrewForm } from './CrewForm';
@@ -12,12 +15,21 @@ import { useCrews } from './hooks';
 /** Form state: closed, or open with members pre-selected besides me. */
 type FormState = { readonly open: false } | { readonly open: true; readonly memberIds: readonly string[] };
 
+function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="px-1 text-title-3 text-ink">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 /** `/g/:gid/crews`: my crews, other crews, suggestions and the new-crew form. */
 export function CrewsPage() {
   const { t } = useTranslation();
   const { group, me } = useGroup();
   const crews = useCrews(group.id);
-  const [members] = useMembers(group.id);
+  const [members, reloadMembers] = useMembers(group.id);
   const [form, setForm] = useState<FormState>({ open: false });
   const active = useMemo<readonly Member[]>(
     () => (members.status === 'ready' ? members.data.filter((m) => m.status === 'active') : []),
@@ -29,63 +41,106 @@ export function CrewsPage() {
     () => (hasProfile ? suggestCrews(active).filter((s) => s.memberIds.includes(me.uid)) : []),
     [active, hasProfile, me.uid],
   );
+  const loading = crews.status === 'loading' || members.status === 'loading';
 
-  if (crews.status === 'error') return <p role="alert">{t('common.errorWith', { message: crews.error.message })}</p>;
-  if (members.status === 'error') return <p role="alert">{t('common.errorWith', { message: members.error.message })}</p>;
-  if (crews.status === 'loading' || members.status === 'loading') return <LoadingState />;
-  const mine = crews.data.filter((c) => c.memberIds.includes(me.uid));
-  const others = crews.data.filter((c) => !c.memberIds.includes(me.uid));
+  if (form.open) {
+    return (
+      <>
+        <TopBar title={t('crews.new')} onBack={() => setForm({ open: false })} backLabel={t('nav.back')} />
+        <PageBody nav>
+          {members.status === 'loading' && <Skeleton className="h-64" />}
+          {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
+          {members.status === 'ready' && (
+            <Fragment key={form.memberIds.join(',')}>
+              <CrewForm members={active} initialMemberIds={form.memberIds} onDone={() => setForm({ open: false })} />
+            </Fragment>
+          )}
+        </PageBody>
+      </>
+    );
+  }
+
+  const mine = crews.status === 'ready' ? crews.data.filter((c) => c.memberIds.includes(me.uid)) : [];
+  const others = crews.status === 'ready' ? crews.data.filter((c) => !c.memberIds.includes(me.uid)) : [];
 
   return (
-    <main className="p-4">
-      <h1>{t('crews.title')}</h1>
-      <button type="button" onClick={() => setForm({ open: true, memberIds: [] })} data-testid="crew-new">
-        {t('crews.new')}
-      </button>
-      {form.open && (
-        <Fragment key={form.memberIds.join(',')}>
-          <CrewForm members={active} initialMemberIds={form.memberIds} onDone={() => setForm({ open: false })} />
-        </Fragment>
-      )}
-      <section aria-labelledby="my-crews-heading">
-        <h2 id="my-crews-heading">{t('crews.mine')}</h2>
-        {mine.length === 0 && <p data-testid="crews-mine-empty">{t('crews.mineEmpty')}</p>}
-        <ul>
-          {mine.map((crew) => (
-            <Fragment key={crew.id}>
-              <CrewCard crew={crew} names={names} />
-            </Fragment>
-          ))}
-        </ul>
-      </section>
-      {others.length > 0 && (
-        <section aria-labelledby="other-crews-heading">
-          <h2 id="other-crews-heading">{t('crews.others')}</h2>
-          <ul>
-            {others.map((crew) => (
-              <Fragment key={crew.id}>
-              <CrewCard crew={crew} names={names} />
-            </Fragment>
-            ))}
-          </ul>
-        </section>
-      )}
-      <section aria-labelledby="suggested-crews-heading">
-        <h2 id="suggested-crews-heading">{t('crews.suggested')}</h2>
-        {!hasProfile && <p>{t('crews.suggestNeedsProfile')}</p>}
-        {hasProfile && suggestions.length === 0 && <p>{t('crews.suggestEmpty')}</p>}
-        <ul>
-          {suggestions.map((s) => (
-            <li key={s.memberIds.join(',')} data-testid="crew-suggestion">
-              <p>{s.memberIds.map((uid) => names.get(uid) ?? uid).join(', ')}</p>
-              <p>{s.reasons.map((r) => t(r.key, r.params)).join(' · ')}</p>
-              <button type="button" onClick={() => setForm({ open: true, memberIds: s.memberIds })}>
-                {t('crews.suggestUse')}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+    <>
+      <TopBar
+        title={t('crews.title')}
+        trailing={<IconButton label={t('crews.new')} icon={<Plus />} onClick={() => setForm({ open: true, memberIds: [] })} data-testid="crew-new" />}
+      />
+      <PageBody nav className="gap-6">
+        {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={() => window.location.reload()} />}
+        {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
+        {loading && (
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-24" />
+            <Skeleton className="h-24" />
+          </div>
+        )}
+
+        {!loading && (
+          <Section title={t('crews.mine')}>
+            {mine.length === 0 ? (
+              <Card variant="tonal" padding="none">
+                <EmptyState
+                  icon={<Users />}
+                  title={t('crews.mineEmpty')}
+                  description={t('crews.mineEmptyHint')}
+                  data-testid="crews-mine-empty"
+                  action={
+                    <Button leadingIcon={<Plus />} onClick={() => setForm({ open: true, memberIds: [] })}>
+                      {t('crews.create')}
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              <ul role="list" className="flex flex-col gap-3">
+                {mine.map((crew) => (
+                  <CrewCard key={crew.id} crew={crew} names={names} />
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
+
+        {!loading && others.length > 0 && (
+          <Section title={t('crews.others')}>
+            <ul role="list" className="flex flex-col gap-3">
+              {others.map((crew) => (
+                <CrewCard key={crew.id} crew={crew} names={names} />
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {!loading && (
+          <Section title={t('crews.suggested')}>
+            {!hasProfile && <EmptyState compact icon={<Sparkles />} title={t('crews.suggestEmpty')} description={t('crews.suggestNeedsProfile')} />}
+            {hasProfile && suggestions.length === 0 && <EmptyState compact icon={<Sparkles />} title={t('crews.suggestEmpty')} />}
+            {suggestions.length > 0 && (
+              <List>
+                {suggestions.map((s) => (
+                  <li key={s.memberIds.join(',')} className="flex flex-col gap-3 px-4 py-3" data-testid="crew-suggestion">
+                    <div className="flex items-center gap-3">
+                      <AvatarStack people={s.memberIds.map((uid) => ({ name: names.get(uid) ?? uid }))} size="sm" max={4} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-body font-medium text-ink">{s.memberIds.map((uid) => names.get(uid) ?? uid).join(', ')}</p>
+                        <p className="text-caption text-ink-3">{s.reasons.map((r) => t(r.key, r.params)).join(' · ')}</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="secondary" className="self-start" onClick={() => setForm({ open: true, memberIds: s.memberIds })}>
+                      {t('crews.suggestUse')}
+                    </Button>
+                  </li>
+                ))}
+              </List>
+            )}
+          </Section>
+        )}
+      </PageBody>
+    </>
   );
 }

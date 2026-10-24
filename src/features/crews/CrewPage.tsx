@@ -1,85 +1,334 @@
-import { Fragment, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router';
-import { LoadingState } from '../../app/fallbacks';
+import { useNavigate, useParams } from 'react-router';
+import { Car, Check, Share2, UserX } from 'lucide-react';
+import { ErrorBanner } from '../../app/fallbacks';
 import { useGroup } from '../../app/providers/group';
+import { PageBody } from '../../app/shell/PageBody';
+import { useBack } from '../../app/shell/useBack';
+import { acceptCrew } from '../../data/crews';
+import { listTrips } from '../../data/trips';
+import { CHURN_WINDOW_DAYS, detectChurn } from '../../domain/churn';
+import { addDays, today } from '../../domain/dates';
 import { legalNoticeKey } from '../../domain/policies';
-import type { Crew, Member } from '../../domain/types';
+import { pickDriver, scoreInRides } from '../../domain/rotation';
+import type { Crew, Member, Trip } from '../../domain/types';
+import { formatDate, joinNames } from '../../shared/lib/format';
+import { useLoad } from '../../shared/lib/loadable';
+import { useAction } from '../../shared/lib/useAction';
+import { Avatar, Badge, Banner, Button, Card, CardHeader, EmptyState, LedgerBar, List, ListItem, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
+import { NavLinks } from '../map/NavLinks';
 import { useMembers } from '../members/hooks';
-import { useCrewPlan } from '../trips/hooks';
-import { compareTrips } from '../trips/nextTrip';
+import { GROUP_TZ, useCrewPlan } from '../trips/hooks';
+import { compareTrips, legTime } from '../trips/nextTrip';
 import { TripCard } from '../trips/TripCard';
 import { useCrews } from './hooks';
-import { ledgerRows } from './ledger';
+import { weekdayRange } from '../profile/schedule';
 
 /** `/g/:gid/crews/:cid`: members, ledger and this week's plan. */
 export function CrewPage() {
   const { t } = useTranslation();
   const { cid = '' } = useParams();
   const { group } = useGroup();
+  const back = useBack(`/g/${group.id}/crews`);
   const crews = useCrews(group.id);
-  const [members] = useMembers(group.id);
+  const [members, reloadMembers] = useMembers(group.id);
 
-  if (crews.status === 'error') return <p role="alert">{t('common.errorWith', { message: crews.error.message })}</p>;
-  if (members.status === 'error') return <p role="alert">{t('common.errorWith', { message: members.error.message })}</p>;
-  if (crews.status === 'loading' || members.status === 'loading') return <LoadingState />;
+  if (crews.status === 'loading' || members.status === 'loading') {
+    return (
+      <>
+        <TopBar title={<Skeleton className="h-5 w-32" />} onBack={back} backLabel={t('nav.back')} />
+        <PageBody nav>
+          <Skeleton className="h-40" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-48" />
+        </PageBody>
+      </>
+    );
+  }
+  if (crews.status === 'error' || members.status === 'error') {
+    return (
+      <>
+        <TopBar title={t('crew.title')} onBack={back} backLabel={t('nav.back')} />
+        <PageBody nav>
+          {crews.status === 'error' && <ErrorBanner error={crews.error} onRetry={() => window.location.reload()} />}
+          {members.status === 'error' && <ErrorBanner error={members.error} onRetry={reloadMembers} />}
+        </PageBody>
+      </>
+    );
+  }
   const crew = crews.data.find((c) => c.id === cid);
   if (!crew) {
     return (
-      <main className="p-4">
-        <p role="alert">{t('crew.notFound')}</p>
-      </main>
+      <>
+        <TopBar title={t('crew.title')} onBack={back} backLabel={t('nav.back')} />
+        <PageBody nav>
+          <EmptyState icon={<UserX />} title={t('crew.notFound')} action={<Button variant="secondary" onClick={back}>{t('nav.crews')}</Button>} />
+        </PageBody>
+      </>
     );
   }
-  return <CrewDetail crew={crew} members={members.data} />;
+  return <CrewDetail crew={crew} members={members.data} onBack={back} />;
 }
 
-function CrewDetail({ crew, members }: { readonly crew: Crew; readonly members: readonly Member[] }) {
-  const { t } = useTranslation();
-  const { group } = useGroup();
+interface LedgerRowView {
+  readonly uid: string;
+  readonly name: string;
+  readonly rides: number;
+  readonly label: string;
+  readonly canDrive: boolean;
+}
+
+const roundRides = (units: number): number => Math.round(scoreInRides(units) * 100) / 100;
+
+function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly members: readonly Member[]; readonly onBack: () => void }) {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { group, me } = useGroup();
   const trips = useCrewPlan(crew, members);
+  const todayDate = today(GROUP_TZ);
+  const [past] = useLoad(
+    () => listTrips(group.id, crew.id, { from: addDays(todayDate, -2 * CHURN_WINDOW_DAYS), to: todayDate }),
+    [group.id, crew.id, todayDate],
+  );
+  const memberById = useMemo(() => new Map(members.map((m) => [m.uid, m])), [members]);
   const names = useMemo(() => new Map(members.map((m) => [m.uid, m.displayName])), [members]);
+  const name = (uid: string) => names.get(uid) ?? uid;
+  const isCaptain = crew.captainId === me.uid;
+  const canAccept = crew.status === 'proposed' && crew.memberIds.includes(me.uid) && !crew.acceptedIds.includes(me.uid);
+
+  const accept = useAction(async () => {
+    const updated = await acceptCrew(group.id, crew.id, me.uid);
+    showToast(t(updated.status === 'active' ? 'crews.activeToast' : 'crews.acceptedToast'), 'success');
+  });
+
+  const pastTrips: readonly Trip[] = past.status === 'ready' ? past.data : [];
+  const churn = useMemo(() => detectChurn(pastTrips, crew, todayDate), [pastTrips, crew, todayDate]);
+  const doneCount = pastTrips.filter((trip) => trip.status === 'done').length;
+  const counted = pastTrips.filter((trip) => trip.status !== 'cancelled').length;
+  const droveCount = (uid: string) => pastTrips.filter((trip) => trip.status === 'done' && trip.driverId === uid).length;
+
+  const ledger: readonly LedgerRowView[] = useMemo(
+    () =>
+      crew.memberIds
+        .map((uid) => {
+          const rides = roundRides(crew.scores[uid] ?? 0);
+          const label = rides > 0 ? t('crew.ledgerAhead', { rides }) : rides < 0 ? t('crew.ledgerBehind', { rides }) : t('crew.ledgerZero');
+          return { uid, name: name(uid), rides, label, canDrive: memberById.get(uid)?.canDrive === true };
+        })
+        .sort((a, b) => b.rides - a.rides),
+    // names and memberById derive from members
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [crew, members, t],
+  );
+  const ledgerMax = Math.max(1, Math.ceil(Math.max(0, ...ledger.map((row) => Math.abs(row.rides)))));
+  const nextDriver = pickDriver({
+    present: crew.memberIds.filter((uid) => memberById.get(uid)?.status === 'active'),
+    eligible: crew.memberIds.filter((uid) => memberById.get(uid)?.canDrive === true),
+    scores: crew.scores,
+    lastDroveOn: crew.lastDroveOn,
+  });
+  const hasRecords = pastTrips.some((trip) => trip.status === 'done') || Object.values(crew.scores).some((units) => units !== 0);
+
+  const sortedWeek = trips.status === 'ready' ? [...trips.data].sort(compareTrips) : [];
+  const shareWeek = async () => {
+    const lines = sortedWeek
+      .filter((trip) => trip.status !== 'cancelled')
+      .map((trip) =>
+        t('crew.shareLine', {
+          date: formatDate(trip.date, i18n.language),
+          time: legTime(crew, trip.leg),
+          driver: trip.driverId ? name(trip.driverId) : t('trip.driverNeeded'),
+          riders: trip.riderIds.length > 0 ? joinNames(trip.riderIds.map(name)) : t('trip.noRiders'),
+        }),
+      );
+    const title = t('crew.shareWeekTitle', { crew: crew.name });
+    const text = [title, ...(lines.length > 0 ? lines : [t('crew.shareNoTrips')])].join('\n');
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title, text });
+        return;
+      } catch {
+        /* dismissed: fall back to copying */
+      }
+    }
+    if (await copyText(text)) showToast(t('crew.shareCopied'), 'success');
+  };
+
+  const facts = [
+    { key: 'days', label: t('crew.factDays'), value: weekdayRange(crew.days, i18n.language) },
+    crew.outTime && { key: 'out', label: t('crew.factOut'), value: crew.outTime },
+    crew.backTime && { key: 'back', label: t('crew.factBack'), value: crew.backTime },
+    crew.pickupNote && { key: 'pickup', label: t('crew.factPickup'), value: crew.pickupNote },
+    { key: 'wait', label: t('crew.factWait'), value: t('crew.waitMin', { min: crew.waitLimitMin }) },
+  ].filter((f): f is { key: string; label: string; value: string } => Boolean(f));
+
+  const statusBadge =
+    crew.status === 'active' ? (
+      <Badge variant="success" icon={<Check />} data-testid="crew-status">{t('crews.status.active')}</Badge>
+    ) : crew.status === 'proposed' ? (
+      <Badge variant="info" data-testid="crew-status">{t('crews.status.proposed')}</Badge>
+    ) : (
+      <Badge data-testid="crew-status">{t('crews.status.paused')}</Badge>
+    );
 
   return (
-    <main className="p-4">
-      <h1 data-testid="crew-title">{crew.name}</h1>
-      <p data-testid="crew-status">{t(`crews.status.${crew.status}`)}</p>
-      {crew.pickupNote && <p>{t('crew.pickup', { note: crew.pickupNote })}</p>}
-      <p>{t('crew.waitLimit', { min: crew.waitLimitMin })}</p>
-      <section aria-labelledby="crew-ledger-heading">
-        <h2 id="crew-ledger-heading">{t('crew.ledger')}</h2>
-        <p>{t('crew.ledgerHint')}</p>
-        <ul>
-          {ledgerRows(crew, members).map((row) => (
-            <li key={row.uid} data-testid={`ledger-row-${row.uid}`}>
-              {row.name}
-              {row.isCaptain && ` · ${t('crew.captain')}`}
-              {row.isBackup && ` · ${t('crew.backup')}`}
-              {' · '}
-              {t('crew.rides', { rides: row.rides })}
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section aria-labelledby="crew-week-heading">
-        <h2 id="crew-week-heading">{t('crew.week')}</h2>
-        {crew.status !== 'active' && <p>{t('crew.notActive')}</p>}
-        {trips.status === 'loading' && <LoadingState />}
-        {trips.status === 'error' && <p role="alert">{t('common.errorWith', { message: trips.error.message })}</p>}
-        {trips.status === 'ready' && crew.status === 'active' && trips.data.length === 0 && <p>{t('crew.noTrips')}</p>}
-        {trips.status === 'ready' && (
-          <ul>
-            {[...trips.data].sort(compareTrips).map((trip) => (
-              <Fragment key={trip.id}>
-                <TripCard crew={crew} trip={trip} names={names} />
-              </Fragment>
-            ))}
-          </ul>
+    <>
+      <TopBar title={<span data-testid="crew-title">{crew.name}</span>} onBack={onBack} backLabel={t('nav.back')} />
+      <PageBody nav>
+        <div className="flex flex-wrap items-center gap-2 px-1 text-sub text-ink-2">
+          {statusBadge}
+          <span>
+            {t('groupHome.memberCount', { count: crew.memberIds.length })} · {t('groupHome.captain', { name: name(crew.captainId) })}
+          </span>
+        </div>
+
+        {crew.status === 'proposed' && (
+          <Banner
+            variant="info"
+            title={t('crews.proposedBanner')}
+            action={
+              canAccept ? (
+                <Button size="sm" variant="secondary" loading={accept.busy} loadingLabel={t('crews.accepting')} onClick={() => accept.run()} data-testid="crew-accept">
+                  {t('crews.accept')}
+                </Button>
+              ) : undefined
+            }
+          >
+            {!canAccept && t('crews.proposedWaiting')}
+          </Banner>
         )}
-      </section>
-      <footer>
-        <p data-testid="crew-legal-notice">{t(legalNoticeKey(group))}</p>
-      </footer>
-    </main>
+
+        {isCaptain && churn.status !== 'ok' && (
+          <Banner
+            variant="warn"
+            title={t('crew.churnTitle')}
+            data-testid="churn-banner"
+            action={
+              <Button size="sm" variant="secondary" onClick={() => navigate(`/g/${group.id}/crews`)}>
+                {t('crew.churnAction')}
+              </Button>
+            }
+          >
+            <p>
+              {churn.status === 'stalled'
+                ? t('crew.churnStalled')
+                : t('crew.churnDeclining', { recent: Math.round(churn.recentRate * 100), previous: Math.round(churn.previousRate * 100) })}
+            </p>
+            {churn.membersAtRisk.length > 0 && <p>{t('crew.churnAtRisk', { names: joinNames(churn.membersAtRisk.map(name)) })}</p>}
+          </Banner>
+        )}
+
+        <Card as="section" padding="none">
+          <CardHeader className="px-4 pt-4" title={t('crew.ledger')} />
+          <div className="mt-1 divide-y divide-line px-4">
+            {ledger.map((row) => {
+              const isNext = row.uid === nextDriver;
+              const detail = isNext
+                ? t('crew.drivesNext')
+                : !row.canDrive
+                  ? t('crew.noDrive')
+                  : !hasRecords
+                    ? t('crew.noRecords')
+                    : t('crew.droveCount', { count: droveCount(row.uid) });
+              return (
+                <LedgerBar
+                  key={row.uid}
+                  name={row.uid === me.uid ? `${row.name} (${t('common.me')})` : row.name}
+                  value={row.rides}
+                  max={ledgerMax}
+                  label={row.label}
+                  leading={<Avatar name={row.name} size="md" marker={isNext ? <Car /> : undefined} />}
+                  detail={detail}
+                  highlight={isNext}
+                  data-testid={`ledger-row-${row.uid}`}
+                />
+              );
+            })}
+          </div>
+          <p className="px-4 pb-4 pt-3 text-caption text-ink-3">{t('crew.ledgerHint')}</p>
+        </Card>
+
+        <Card as="section">
+          <div className="grid grid-cols-3 gap-3">
+            <Stat value={past.status === 'ready' ? doneCount : <Skeleton className="h-7 w-10" />} label={t('crew.statTrips')} />
+            <Stat value={past.status === 'ready' ? `${counted === 0 ? 0 : Math.round((doneCount / counted) * 100)}%` : <Skeleton className="h-7 w-10" />} label={t('crew.statRate')} />
+            <Stat value={crew.memberIds.length} label={t('crew.statMembers')} />
+          </div>
+        </Card>
+
+        <Card as="section" padding="none">
+          <CardHeader
+            className="px-4 pt-4"
+            title={t('crew.week')}
+            action={
+              <Button variant="ghost" size="sm" leadingIcon={<Share2 />} onClick={() => void shareWeek()} data-testid="crew-share-week">
+                {t('common.share')}
+              </Button>
+            }
+          />
+          {crew.status !== 'active' && <p className="px-4 pb-4 pt-2 text-sub text-ink-2">{t('crew.notActive')}</p>}
+          {crew.status === 'active' && trips.status === 'loading' && (
+            <div className="flex flex-col gap-3 p-4">
+              <Skeleton className="h-14" />
+              <Skeleton className="h-14" />
+            </div>
+          )}
+          {crew.status === 'active' && trips.status === 'error' && <ErrorBanner error={trips.error} onRetry={() => window.location.reload()} className="m-4" />}
+          {crew.status === 'active' && trips.status === 'ready' && sortedWeek.length === 0 && <EmptyState compact title={t('crew.noTrips')} />}
+          {crew.status === 'active' && trips.status === 'ready' && sortedWeek.length > 0 && (
+            <ul role="list" className="mt-1 divide-y divide-line">
+              {sortedWeek.map((trip) => (
+                <TripCard key={trip.id} crew={crew} trip={trip} names={names} members={members} highlight={trip.date === todayDate} />
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card as="section" padding="none">
+          <CardHeader className="px-4 pt-4" title={t('crew.members')} />
+          <List inset={false} className="mt-1">
+            {crew.memberIds.map((uid) => {
+              const member = memberById.get(uid);
+              const badge =
+                uid === crew.captainId ? (
+                  <Badge variant="brand">{t('crew.captain')}</Badge>
+                ) : crew.status === 'proposed' && !crew.acceptedIds.includes(uid) ? (
+                  <Badge variant="info">{t('crews.pending')}</Badge>
+                ) : crew.backupDriverIds.includes(uid) ? (
+                  <Badge>{t('crew.backup')}</Badge>
+                ) : undefined;
+              return (
+                <ListItem
+                  key={uid}
+                  leading={<Avatar name={name(uid)} size="md" />}
+                  title={uid === me.uid ? `${name(uid)} (${t('common.me')})` : name(uid)}
+                  description={member?.canDrive ? t('crew.driverSeats', { seats: member.seats }) : t('crew.riderOnly')}
+                  trailing={badge}
+                />
+              );
+            })}
+          </List>
+        </Card>
+
+        <Card as="section" variant="tonal" padding="none">
+          <CardHeader className="px-4 pt-4" title={t('crew.facts')} />
+          <List inset={false} className="mt-1">
+            {facts.map((fact) => (
+              <ListItem key={fact.key} title={<span className="text-sub text-ink-2">{fact.label}</span>} trailing={<span className="text-body text-ink">{fact.value}</span>} className="min-h-12 py-2" />
+            ))}
+          </List>
+          {group.destination && (
+            <div className="px-4 pb-4 pt-1">
+              <NavLinks group={group} />
+            </div>
+          )}
+        </Card>
+
+        <p className="px-1 text-caption text-ink-3" data-testid="crew-legal-notice">
+          {t(legalNoticeKey(group))}
+        </p>
+      </PageBody>
+    </>
   );
 }
