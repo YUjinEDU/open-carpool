@@ -94,6 +94,38 @@ describe('trips', () => {
     await assertSucceeds(tripDoc('alice', APPLIED_TRIP).update({ cost: { totalAmount: 12, currency: 'USD' } }));
   });
 
+  const seedTrip = (patch: Record<string, unknown>) =>
+    env.withSecurityRulesDisabled((ctx) => ctx.firestore().doc(`groups/${GID}/crews/${CID}/trips/${TRIP}`).update(patch));
+
+  it('lets a crew member volunteer for a trip without a driver, only as themselves', async () => {
+    await seedTrip({ driverId: null, status: 'needs_driver', riderIds: ['alice', 'bob'] });
+    await assertFails(tripDoc('bob').update({ driverId: 'alice', status: 'planned', riderIds: ['bob'] }));
+    await assertSucceeds(tripDoc('bob').update({ driverId: 'bob', status: 'planned', riderIds: ['alice'] }));
+  });
+
+  it('denies taking over a trip whose driver is still present', async () => {
+    await assertFails(tripDoc('bob').update({ driverId: 'bob', riderIds: ['alice'] }));
+  });
+
+  it('lets only the driver give up driving', async () => {
+    await assertFails(tripDoc('bob').update({ driverId: null, status: 'needs_driver' }));
+    await assertSucceeds(tripDoc('alice').update({ driverId: null, status: 'needs_driver', riderIds: ['bob', 'alice'] }));
+  });
+
+  it('lets the planner replace a driver who is absent, left the crew or stopped driving', async () => {
+    await seedTrip({ absentIds: ['alice'] });
+    await assertSucceeds(tripDoc('bob').update({ driverId: 'bob', riderIds: [] }));
+    await seedTrip({ driverId: 'carol', absentIds: [] });
+    await assertSucceeds(tripDoc('bob').update({ driverId: 'alice', riderIds: ['bob'] }));
+    await env.withSecurityRulesDisabled((ctx) => ctx.firestore().doc(`groups/${GID}/members/alice`).update({ canDrive: false }));
+    await assertSucceeds(tripDoc('bob').update({ driverId: null, status: 'needs_driver', riderIds: ['alice', 'bob'] }));
+  });
+
+  it('denies the planner naming a driver from outside the crew', async () => {
+    await seedTrip({ absentIds: ['alice'] });
+    await assertFails(tripDoc('bob').update({ driverId: 'carol' }));
+  });
+
   it('denies deleting trips', async () => {
     await assertFails(tripDoc('alice').delete());
   });

@@ -11,6 +11,7 @@ service cloud.firestore {
 
     function groupPath(gid) { return /databases/$(database)/documents/groups/$(gid); }
     function myMemberPath(gid) { return /databases/$(database)/documents/groups/$(gid)/members/$(request.auth.uid); }
+    function memberPath(gid, uid) { return /databases/$(database)/documents/groups/$(gid)/members/$(uid); }
     function crewPath(gid, cid) { return /databases/$(database)/documents/groups/$(gid)/crews/$(cid); }
     function tripPath(gid, cid, tid) { return /databases/$(database)/documents/groups/$(gid)/crews/$(cid)/trips/$(tid); }
 
@@ -219,6 +220,28 @@ service cloud.firestore {
         && request.resource.data.status == 'proposed';
     }
 
+    // ---------- helpers: trip driver (R-02) ----------
+    // The stored driver can no longer drive this trip: absent, out of the crew, inactive or not driving.
+    function driverUnavailable(gid, cid, uid) {
+      return uid in request.resource.data.absentIds
+        || !(uid in get(crewPath(gid, cid)).data.memberIds)
+        || !exists(memberPath(gid, uid))
+        || get(memberPath(gid, uid)).data.status != 'active'
+        || get(memberPath(gid, uid)).data.canDrive != true;
+    }
+    // Who may change a trip's driver: admins; a volunteer taking an open seat for themselves; the driver
+    // giving up; the planner replacing an unavailable driver or reopening a cancelled trip with a crew member.
+    function driverChangeOk(gid, cid) {
+      let d0 = resource.data.driverId;
+      let d1 = request.resource.data.driverId;
+      return d0 == d1
+        || isAdmin(gid)
+        || (d0 == null && resource.data.status == 'needs_driver' && d1 == me())
+        || (d0 == me() && d1 == null && request.resource.data.status == 'needs_driver')
+        || ((d1 == null || d1 in get(crewPath(gid, cid)).data.memberIds)
+            && (resource.data.status == 'cancelled' || (d0 != null && driverUnavailable(gid, cid, d0))));
+    }
+
     // ---------- helpers: members (S-06, S-07) ----------
     function adminStatusChangeOk() {
       let s0 = resource.data.status;
@@ -337,7 +360,8 @@ service cloud.firestore {
               || (resource.data.applied != true
                   && request.resource.data.applied == false
                   && request.resource.data.status in ['planned', 'needs_driver', 'cancelled']
-                  && unchanged(['date', 'leg', 'completedBy', 'completedAt']))
+                  && unchanged(['date', 'leg', 'completedBy', 'completedAt'])
+                  && driverChangeOk(gid, cid))
               // Settlement: by the caller, paired with the crew ledger move in the same batch.
               || (resource.data.applied != true
                   && request.resource.data.applied == true

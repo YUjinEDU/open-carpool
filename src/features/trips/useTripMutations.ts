@@ -18,7 +18,7 @@ export function useTripMutations(crew: Pick<Crew, 'id'>, trip: Pick<Trip, 'id' |
     showToast(t(absent ? 'trip.absentToast' : 'trip.backToast'), 'success');
   });
   const giveUp = useAction(async () => {
-    await giveUpDriving(gid, cid, tripId);
+    await giveUpDriving(gid, cid, tripId, me.uid);
     showToast(t('trip.gaveUpToast'), 'info');
   });
   const volunteer = useAction(async () => {

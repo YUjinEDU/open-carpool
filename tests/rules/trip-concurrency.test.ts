@@ -104,7 +104,7 @@ describe('planner writes from a stale snapshot', () => {
     const planned = await tripOn(gid, cid, `${TUE}_out`);
     const driver = planned?.driverId ?? null;
     await become(nameOf(driver));
-    await trips.giveUpDriving(gid, cid, `${TUE}_out`);
+    await trips.giveUpDriving(gid, cid, `${TUE}_out`, uids[nameOf(driver)]);
     const stale = await trips.listTrips(gid, cid, RANGE);
     const volunteer = other(driver);
     await become(nameOf(volunteer));
@@ -113,6 +113,34 @@ describe('planner writes from a stale snapshot', () => {
     await syncCrewPlan({ gid, plan: await planFor(gid, cid, stale) });
 
     expect(await tripOn(gid, cid, `${TUE}_out`)).toMatchObject({ driverId: volunteer, status: 'planned' });
+  });
+});
+
+describe('driver changes', () => {
+  it('rejects a second volunteer once the trip has a driver', async () => {
+    const { gid, cid } = await activeCrew();
+    await syncCrewPlan({ gid, plan: await planFor(gid, cid, []) });
+    const id = `${MON}_out`;
+    const driver = (await tripOn(gid, cid, id))?.driverId ?? null;
+    await become(nameOf(driver));
+    await trips.giveUpDriving(gid, cid, id, uids[nameOf(driver)]);
+    await become(nameOf(other(driver)));
+    await trips.volunteerToDrive(gid, cid, id, other(driver));
+    await become(nameOf(driver));
+
+    await expect(trips.volunteerToDrive(gid, cid, id, uids[nameOf(driver)])).rejects.toBeInstanceOf(trips.DriverTakenError);
+    expect((await tripOn(gid, cid, id))?.driverId).toBe(other(driver));
+  });
+
+  it('rejects giving up a trip someone else drives', async () => {
+    const { gid, cid } = await activeCrew();
+    await syncCrewPlan({ gid, plan: await planFor(gid, cid, []) });
+    const id = `${MON}_out`;
+    const driver = (await tripOn(gid, cid, id))?.driverId ?? null;
+    await become(nameOf(other(driver)));
+
+    await expect(trips.giveUpDriving(gid, cid, id, other(driver))).rejects.toBeInstanceOf(trips.DriverTakenError);
+    expect((await tripOn(gid, cid, id))?.driverId).toBe(driver);
   });
 });
 

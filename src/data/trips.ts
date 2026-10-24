@@ -36,6 +36,14 @@ export class TripAlreadyAppliedError extends Error {
   }
 }
 
+/** The trip's driver changed under the caller: someone else volunteered, or the caller no longer drives it. */
+export class DriverTakenError extends Error {
+  constructor(readonly tripId: string) {
+    super(`trip driver already changed: ${tripId}`);
+    this.name = 'DriverTakenError';
+  }
+}
+
 const tripsCol = (gid: string, cid: string) =>
   collection(db, 'groups', gid, 'crews', cid, 'trips').withConverter(idConverter<Trip>());
 const tripRef = (gid: string, cid: string, tripId: string) =>
@@ -73,12 +81,27 @@ export async function markAbsent(gid: string, cid: string, tripId: string, uid: 
   await updateDoc(tripRef(gid, cid, tripId), { absentIds: absent ? arrayUnion(uid) : arrayRemove(uid) });
 }
 
+/** Take an open trip. Throws DriverTakenError when someone else got it first. */
 export async function volunteerToDrive(gid: string, cid: string, tripId: string, uid: string): Promise<void> {
-  await updateDoc(tripRef(gid, cid, tripId), { driverId: uid, status: 'planned', riderIds: arrayRemove(uid) });
+  const ref = tripRef(gid, cid, tripId);
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error(`trip not found: ${tripId}`);
+    const trip = snap.data();
+    if (trip.status !== 'needs_driver' || trip.driverId !== null) throw new DriverTakenError(tripId);
+    tx.update(ref, { driverId: uid, status: 'planned', riderIds: trip.riderIds.filter((id) => id !== uid) });
+  });
 }
 
-export async function giveUpDriving(gid: string, cid: string, tripId: string): Promise<void> {
-  await updateDoc(tripRef(gid, cid, tripId), { driverId: null, status: 'needs_driver' });
+/** Hand back a trip the caller drives. Throws DriverTakenError when the caller is not its driver any more. */
+export async function giveUpDriving(gid: string, cid: string, tripId: string, uid: string): Promise<void> {
+  const ref = tripRef(gid, cid, tripId);
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) throw new Error(`trip not found: ${tripId}`);
+    if (snap.data().driverId !== uid) throw new DriverTakenError(tripId);
+    tx.update(ref, { driverId: null, status: 'needs_driver' });
+  });
 }
 
 /** Record the actual cost of a done trip (rules allow only `cost` to change after completion). */

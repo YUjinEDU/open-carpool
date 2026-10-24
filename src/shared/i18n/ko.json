@@ -439,6 +439,7 @@
     "confirm": "확인",
     "cancel": "취소",
     "completed": "이미 완료됨",
+    "driverTaken": "이미 다른 크루원이 운전을 맡고 있어요. 최신 계획을 확인해 주세요.",
     "absentToast": "불참으로 표시했습니다.",
     "backToast": "참석으로 표시했습니다.",
     "gaveUpToast": "운전자가 필요합니다. 크루원이 지원할 수 있어요.",

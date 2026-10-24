@@ -439,6 +439,7 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "completed": "Already completed",
+    "driverTaken": "Someone else already has this drive. Check the latest plan.",
     "absentToast": "Marked as not going.",
     "backToast": "Marked as going.",
     "gaveUpToast": "A driver is needed: the crew can volunteer.",
