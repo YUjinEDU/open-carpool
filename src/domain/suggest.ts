@@ -17,11 +17,13 @@ export interface CrewSuggestion {
   readonly reasons: readonly SuggestionReason[];
 }
 
-interface Pair {
+export interface PairScore {
   readonly km: number;
   readonly overlap: number;
   readonly score: number;
 }
+
+type Pair = PairScore;
 
 const EARTH_RADIUS_KM = 6371;
 const TIME_WINDOW_MIN = 30;
@@ -53,6 +55,18 @@ export function scheduleOverlap(a: WeeklySchedule, b: WeeklySchedule): number {
   }, 0);
 }
 
+/**
+ * How well two members commute together: schedule overlap points plus closeness (0..1).
+ * Null when either has no area, they live farther apart than maxDistanceKm or never travel together.
+ */
+export function scorePair(x: Pick<Member, 'area' | 'schedule'>, y: Pick<Member, 'area' | 'schedule'>, maxDistanceKm: number): PairScore | null {
+  if (x.area === null || y.area === null) return null;
+  const km = haversineKm(x.area, y.area);
+  const overlap = scheduleOverlap(x.schedule, y.schedule);
+  if (km > maxDistanceKm || overlap === 0) return null;
+  return { km, overlap, score: overlap + (1 - km / maxDistanceKm) };
+}
+
 const pairKey = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
@@ -67,13 +81,10 @@ export function suggestCrews(members: readonly Member[], { maxSize = 4, maxDista
   const seeds: { readonly a: string; readonly b: string; readonly score: number }[] = [];
   for (const [i, x] of pool.entries()) {
     for (const y of pool.slice(i + 1)) {
-      if (x.area === null || y.area === null) continue;
-      const km = haversineKm(x.area, y.area);
-      const overlap = scheduleOverlap(x.schedule, y.schedule);
-      if (km > maxDistanceKm || overlap === 0) continue;
-      const score = overlap + (1 - km / maxDistanceKm);
-      pairs.set(pairKey(x.uid, y.uid), { km, overlap, score });
-      seeds.push({ a: x.uid, b: y.uid, score });
+      const pair = scorePair(x, y, maxDistanceKm);
+      if (pair === null) continue;
+      pairs.set(pairKey(x.uid, y.uid), pair);
+      seeds.push({ a: x.uid, b: y.uid, score: pair.score });
     }
   }
   seeds.sort((p, q) => q.score - p.score || pairKey(p.a, p.b).localeCompare(pairKey(q.a, q.b)));
