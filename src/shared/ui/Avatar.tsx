@@ -14,6 +14,8 @@ export interface AvatarProps extends RootProps {
   marker?: ReactNode;
   /** 1 = first syllable or initial only (stacks, xs); 2 = default. */
   initialsLength?: 1 | 2;
+  /** Explicit display text (group names: the first two characters instead of the given-name rule). */
+  initials?: string;
 }
 
 const SIZE: Record<AvatarSize, string> = {
@@ -51,7 +53,7 @@ function hashName(name: string): number {
   return h;
 }
 
-export function Avatar({ name, src, size = 'md', tint = 'auto', marker, initialsLength, className, ...rest }: AvatarProps) {
+export function Avatar({ name, src, size = 'md', tint = 'auto', marker, initialsLength, initials, className, ...rest }: AvatarProps) {
   const tintClass = tint === 'auto' ? TINTS[hashName(name) % TINTS.length] : 'bg-surface-3 text-ink-2';
   return (
     <span
@@ -65,7 +67,7 @@ export function Avatar({ name, src, size = 'md', tint = 'auto', marker, initials
       )}
       {...rest}
     >
-      {src ? <img src={src} alt="" className="size-full rounded-chip object-cover" /> : <span aria-hidden="true">{initialsFor(name, initialsLength ?? (size === 'xs' ? 1 : 2))}</span>}
+      {src ? <img src={src} alt="" className="size-full rounded-chip object-cover" /> : <span aria-hidden="true">{initials ?? initialsFor(name, initialsLength ?? (size === 'xs' ? 1 : 2))}</span>}
       {marker && (
         <span
           aria-hidden="true"

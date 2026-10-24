@@ -9,6 +9,8 @@ export interface BottomNavItem {
   href?: string;
   /** Unread or pending count. Numbers only: a plain dot would be decoration. */
   badge?: number;
+  /** data-testid for end-to-end scripts. */
+  testId?: string;
 }
 
 export interface BottomNavProps {
@@ -61,11 +63,11 @@ export function BottomNav({ items, activeKey, onSelect, label, position = 'fixed
           return (
             <li key={item.key} className="min-w-0">
               {item.href ? (
-                <a href={item.href} aria-current={active ? 'page' : undefined} onClick={(e) => onSelect?.(item, e)} className={cls}>
+                <a href={item.href} aria-current={active ? 'page' : undefined} onClick={(e) => onSelect?.(item, e)} className={cls} data-testid={item.testId}>
                   {inner}
                 </a>
               ) : (
-                <button type="button" aria-current={active ? 'page' : undefined} onClick={(e) => onSelect?.(item, e)} className={cls}>
+                <button type="button" aria-current={active ? 'page' : undefined} onClick={(e) => onSelect?.(item, e)} className={cls} data-testid={item.testId}>
                   {inner}
                 </button>
               )}

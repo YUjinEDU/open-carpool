@@ -24,13 +24,13 @@ export interface LedgerBarProps extends RootProps {
  * Centred-zero balance bar. Ahead (positive) fills right in brand green; behind (negative) fills left in amber.
  * The sign and label carry the meaning; colour is secondary. Nobody is "in debt": the label says "turn coming" tones, not blame.
  */
-export function LedgerBar({ value, max = 2, label, name, leading, detail, highlight = false, className }: LedgerBarProps) {
+export function LedgerBar({ value, max = 2, label, name, leading, detail, highlight = false, className, ...rest }: LedgerBarProps) {
   const scale = Math.max(Math.abs(max), 0.5);
   const pct = Math.min(Math.abs(value) / scale, 1) * 50;
   const ahead = value > 0;
   const behind = value < 0;
   return (
-    <div className={cx('flex items-center gap-3 py-2', className)}>
+    <div className={cx('flex items-center gap-3 py-2', className)} {...rest}>
       {leading && <span className="shrink-0">{leading}</span>}
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">

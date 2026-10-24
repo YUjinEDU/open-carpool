@@ -27,10 +27,10 @@ const VARIANT: Record<BannerVariant, { box: string; icon: ReactNode; role: 'stat
 };
 
 /** Inline message on a tonal wash with a leading glyph. No side stripe, ever. */
-export function Banner({ variant = 'info', title, children, action, icon, onDismiss, dismissLabel = '', className }: BannerProps) {
+export function Banner({ variant = 'info', title, children, action, icon, onDismiss, dismissLabel = '', className, ...rest }: BannerProps) {
   const spec = VARIANT[variant];
   return (
-    <div role={spec.role} className={cx('flex items-start gap-3 rounded-card p-4', spec.box, className)}>
+    <div role={spec.role} className={cx('flex items-start gap-3 rounded-card p-4', spec.box, className)} {...rest}>
       <span aria-hidden="true" className="mt-0.5 inline-flex shrink-0 [&_svg]:size-5">
         {icon ?? spec.icon}
       </span>

@@ -45,7 +45,7 @@ const ROW =
   'flex w-full min-h-14 items-center gap-3 px-4 py-2.5 text-left text-ink';
 
 export const ListItem = forwardRef<HTMLLIElement, ListItemProps>(function ListItem(
-  { title, description, leading, trailing, chevron, href, onClick, disabled, selected, className, current },
+  { title, description, leading, trailing, chevron, href, onClick, disabled, selected, className, current, id, style, lang, ...rest },
   ref,
 ) {
   const interactive = Boolean(href || onClick) && !disabled;
@@ -70,15 +70,15 @@ export const ListItem = forwardRef<HTMLLIElement, ListItemProps>(function ListIt
   return (
     <li ref={ref} className="list-none">
       {href && !disabled ? (
-        <a href={href} onClick={onClick} aria-current={current} className={rowClass}>
+        <a href={href} onClick={onClick} aria-current={current} className={rowClass} id={id} style={style} lang={lang} {...rest}>
           {content}
         </a>
       ) : onClick && !disabled ? (
-        <button type="button" onClick={onClick} aria-current={current} aria-pressed={selected} className={rowClass}>
+        <button type="button" onClick={onClick} aria-current={current} aria-pressed={selected} className={rowClass} id={id} style={style} lang={lang} {...rest}>
           {content}
         </button>
       ) : (
-        <div className={rowClass} aria-disabled={disabled || undefined}>
+        <div className={rowClass} aria-disabled={disabled || undefined} id={id} style={style} lang={lang} {...rest}>
           {content}
         </div>
       )}

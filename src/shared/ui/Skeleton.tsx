@@ -9,7 +9,7 @@ export interface SkeletonProps extends RootProps {
 }
 
 /** Placeholder matching the final layout's shape. Pulses gently; static under reduced motion. */
-export function Skeleton({ variant = 'block', lines = 1, className }: SkeletonProps) {
+export function Skeleton({ variant = 'block', lines = 1, className, style }: SkeletonProps) {
   if (variant === 'text') {
     return (
       <span aria-hidden="true" className={cx('flex flex-col gap-2', className)}>
@@ -22,6 +22,7 @@ export function Skeleton({ variant = 'block', lines = 1, className }: SkeletonPr
   return (
     <span
       aria-hidden="true"
+      style={style}
       className={cx('block animate-skeleton bg-surface-3', variant === 'circle' ? 'rounded-chip' : 'rounded-control', className)}
     />
   );

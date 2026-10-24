@@ -120,13 +120,13 @@ All copy is passed in as props (i18n lives in the feature). All colours and size
 | IconButton | ghost, secondary, primary; md 44 / lg 52; `label` required | same | aria-label + title |
 | Card | default (surface + hairline), tonal (surface-2), inverse (evening material); padding none/sm/md/lg; `CardHeader` title/description/action | static | heading level via `as` |
 | List / ListItem | inset or bare; leading, title, description, trailing, chevron, href or onClick, selected, disabled | hover surface-2, active surface-3, selected accent-wash (+ check glyph from caller) | li > a/button/div, aria-current |
-| Input, TextArea, Select, TimeField | label above (hidden option), hint, error, leading/trailing, optionalLabel | focus border + 2px ring at 25% focus, invalid danger border, disabled surface-2 | label htmlFor, aria-describedby error then hint, aria-invalid, native pickers |
+| Input, TextArea, Select, TimeField | label above (hidden option), hint, error, leading/trailing, optionalLabel; TimeField `icon={false}` drops the clock glyph in two-up grids | focus border + 2px ring at 25% focus, invalid danger border, disabled surface-2 | label htmlFor, aria-describedby error then hint, aria-invalid, native pickers |
 | Switch | label + description row, 52x32 track, 26px thumb with check glyph | on (accent, thumb right + check), off, disabled | role=switch, aria-checked, labelledby |
 | Checkbox | boxPosition start/end, description | checked (accent fill, white check), focus ring on the drawn box, disabled | native input (sr-only) under a drawn box |
 | SegmentedControl | 2-4 options, md/lg, fullWidth | selected = raised surface | radiogroup, arrow keys, roving tabindex |
 | Chip / ChipGroup | md 44 / sm 36, selected, showCheck, icon; group single or multiple | selected = wash-strong + accent ink + semibold (+ check) | aria-pressed, group aria-label |
 | Badge | neutral, brand, success, warn, danger, info; sm/md; icon | static | text, glyph optional |
-| Avatar / AvatarStack | xs 24 to xl 64, tint auto/neutral, marker glyph, src; stack max + "+N" | static | role=img with name(s) |
+| Avatar / AvatarStack | xs 24 to xl 64, tint auto/neutral, marker glyph, src, `initials` override (group names show their first two characters); stack max + "+N" | static | role=img with name(s) |
 | TopBar | title, onBack/backLabel, onTitleClick (switcher), leading, trailing, sticky, transparent, wide | static | header, h1 or switcher button with aria-haspopup |
 | BottomNav | items (key, label, icon, href, badge count), activeKey, position fixed/absolute | active | nav aria-label, aria-current=page |
 | Sheet / SheetPanel | title, description, closeLabel, footer; panel exported for static hosts | open (animate-sheet-in), closing (sheet-out), scrim fade | native dialog: focus trap, Esc, initial focus on panel |
@@ -136,7 +136,8 @@ All copy is passed in as props (i18n lives in the feature). All colours and size
 | Skeleton / Spinner | text lines, block, circle; sm/md/lg spinner with label | pulse (static under reduced motion) | aria-hidden / role=status |
 | Stat | value, label, hint, md/lg, align | static | text |
 | LedgerBar | value, max, label, name, leading, detail, highlight | ahead (brand-500 right), behind (warn-bar left), zero | role=img "name: label" |
-| ShareButtons | url, title, text, labels, qr slot, code | copied (label swap 2s) | buttons; share only when navigator.share exists |
+| ShareButtons | url, title, text, labels, qr slot, code (node), testIds | copied (label swap 2s) | buttons; share only when navigator.share exists; `copyText` is exported for other share flows |
+| QrCode | value, label, size | skeleton while the generator (`qrcode`, lazy chunk) loads | img with alt |
 | Toast | showToast(message, kind) + ToastContainer | enter animation, auto-dismiss 3s | aria-live=polite region, role=status items |
 
 Layout primitives used: stack (flex-col gap), cluster (flex-wrap gap-2), scroll-body-shell (`scroll-shell` / `scroll-body` utilities), overlay via native dialog.
@@ -292,12 +293,24 @@ Constraints (WCAG 2.2 AA)
 Accepted debt
 | Item | Location | Why accepted | Owner / exit |
 |---|---|---|---|
-| Dark theme is opt-in (`data-theme="dark"`), not following `prefers-color-scheme` | src/index.css | The parent brief made dark optional; tokens and the gallery toggle are done, screens are not yet QA'd in dark | U3/U4 add a system/light/dark setting under More once screens exist |
+| Dark theme follows the OS by default (`system`), with a system / light / dark control under 내 계정 (`src/app/theme.ts`, stored in localStorage) | src/index.css, src/app/theme.ts | Home and Crew detail were QA'd in dark (docs/screenshots/*-dark.png); the remaining screens share the same tokens but were only reviewed in light | Review the rest in dark during the next visual QA round |
 | Pretendard loads from jsDelivr | src/index.css | Fast to ship; platform Korean fonts are the fallback | Self-host under public/fonts before the open-source release (U6) |
-| `@types/react` is not installed, so JSX props are unchecked by `npm run lint`; the kit declares its own prop types so it checks either way | package.json | Out of this unit's scope to change dependencies | Lead adds @types/react and @types/react-dom (dev) |
 | Sheet has no drag-to-dismiss gesture | src/shared/ui/Sheet.tsx | Close control, backdrop tap and Esc cover dismissal | Add gesture later if users expect it |
 | Native `<input type="time">` renders AM/PM in ko on some browsers | TimeField | Platform behaviour; values stay HH:MM | None planned |
 | Legacy token aliases (`primary-container`, `on-surface`, ...) remain in index.css | src/index.css | src/screens still uses them | Delete with src/screens (U3) |
+
+## Implementation status (screens as built)
+
+The screens follow the specs above with these deliberate differences, each visible in `docs/screenshots/`:
+
+- **Shell**: each page renders its own `TopBar` and a `PageBody` (`src/app/shell/PageBody.tsx`, `nav` adds `pb-safe-nav`); `GroupLayout` adds the fixed `BottomNav` and the More sheet (profile, settings and admin for admins, account, my groups, leave group). The document is the only scroll owner; `ScrollReset` scrolls new screens to the top. More is a sheet, not a route.
+- **New crew** is a page mode of `/g/:gid/crews` (TopBar back), not a sheet: the member list, weekday chips and two time fields are too long for a sheet on a phone.
+- **Trip rows** on Crew detail carry their verbs inline as small buttons (못 가요 / 갈게요, 운전 못 해요, 제가 운전할게요, 운행 완료); the absence, hand-over and volunteer verbs confirm in an `alertdialog` (`TripActionBar`) instead of the absence Sheet, and completion opens the roster Sheet (`CompleteSheet`) from both Home and Crew detail.
+- **Group create** lands on Group settings (the invite card is first) rather than Home; Home shows the three getting-started items as a tonal card for an owner who is still alone.
+- **Evening digest** is a dismissable info Banner on Home from 18:00 (group zone) when tomorrow has trips, mirrored by one local Notification per day for members who opted in under 내 계정 (`src/app/notifications.ts`); background push needs a server and is stated in the opt-in copy.
+- **Churn** shows the captain a warn Banner on Crew detail when `domain/churn` reports declining or stalled, with the at-risk names and a link to the crews page.
+- **Plate rule**: a trip row shows the info Badge 부제 적용 when the group's plate rotation excluded a driver that day (names in the title attribute).
+- Deep-link previews without sign-in and the first-time captain Sheet are not built; `/join/:code` requires sign-in first (router guard).
 
 ## Implementation notes for workers
 

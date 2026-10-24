@@ -16,10 +16,12 @@ export interface SegmentedControlProps<T extends string> {
   size?: 'md' | 'lg';
   fullWidth?: boolean;
   className?: string;
+  /** data-testid on the radiogroup for end-to-end scripts. */
+  testId?: string;
 }
 
 /** Mutually exclusive choice, 2-4 options. Radio semantics with arrow-key movement. */
-export function SegmentedControl<T extends string>({ options, value, onChange, label, size = 'md', fullWidth = true, className }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, label, size = 'md', fullWidth = true, className, testId }: SegmentedControlProps<T>) {
   const refs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const move = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -40,6 +42,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange, l
     <div
       role="radiogroup"
       aria-label={label}
+      data-testid={testId}
       className={cx('inline-grid grid-flow-col auto-cols-fr gap-1 rounded-control bg-surface-2 p-1', fullWidth && 'w-full', className)}
     >
       {options.map((option, index) => {

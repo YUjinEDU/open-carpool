@@ -43,6 +43,8 @@ export interface ChipOption<T extends string> {
   value: T;
   label: ReactNode;
   disabled?: boolean;
+  /** data-testid for end-to-end scripts. */
+  testId?: string;
 }
 
 export interface ChipGroupProps<T extends string> {
@@ -78,6 +80,7 @@ export function ChipGroup<T extends string>({ options, value, onChange, label, m
           selected={value.includes(option.value)}
           disabled={option.disabled}
           onClick={() => toggle(option.value)}
+          data-testid={option.testId}
         >
           {option.label}
         </Chip>

@@ -14,9 +14,9 @@ export interface EmptyStateProps extends Omit<RootProps, 'title'> {
   className?: string;
 }
 
-export function EmptyState({ icon, title, description, action, compact = false, className }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, compact = false, className, ...rest }: EmptyStateProps) {
   return (
-    <div className={cx('flex flex-col items-center text-center', compact ? 'gap-2 px-4 py-6' : 'gap-3 px-6 py-10', className)}>
+    <div className={cx('flex flex-col items-center text-center', compact ? 'gap-2 px-4 py-6' : 'gap-3 px-6 py-10', className)} {...rest}>
       {icon && (
         <span aria-hidden="true" className={cx('grid place-items-center rounded-chip bg-surface-2 text-ink-3', compact ? 'size-10 [&_svg]:size-5' : 'size-14 [&_svg]:size-7')}>
           {icon}

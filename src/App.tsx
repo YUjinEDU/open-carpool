@@ -2,7 +2,10 @@ import { RouterProvider } from 'react-router/dom';
 import { AuthProvider } from './app/providers/auth';
 import { I18nProvider } from './app/providers/i18n';
 import { router } from './app/router';
-import { ToastContainer } from './components/Toast';
+import { initTheme } from './app/theme';
+import { ToastContainer } from './shared/ui';
+
+initTheme();
 
 export default function App() {
   return (
