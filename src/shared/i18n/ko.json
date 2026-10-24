@@ -10,8 +10,8 @@
     "events": "이벤트",
     "members": "멤버",
     "profile": "내 프로필",
-    "settings": "설정",
-    "admin": "관리",
+    "settings": "그룹 설정",
+    "admin": "대시보드",
     "provider": {
       "title": "길안내 열기",
       "naver": "네이버 지도",
@@ -30,14 +30,13 @@
   },
   "common": {
     "loading": "불러오는 중…",
-    "unexpected": "문제가 발생했습니다",
+    "unexpected": "문제가 생겼어요. 다시 시도해 주세요.",
     "reload": "새로고침",
     "dismiss": "닫기",
-    "errorWith": "오류: {{message}}",
-    "saved": "저장했습니다",
+    "saved": "저장했어요",
     "save": "저장",
-    "adminsOnly": "그룹 관리자만 볼 수 있습니다.",
-    "comingSoon": "준비 중입니다.",
+    "adminsOnly": "그룹 관리자만 볼 수 있어요.",
+    "comingSoon": "준비 중이에요.",
     "retry": "다시 시도",
     "close": "닫기",
     "cancel": "취소",
@@ -52,27 +51,51 @@
     "toGroup": "그룹으로 가기",
     "me": "나",
     "savedBadge": "저장됨",
-    "unsupported": "지원하지 않아요"
+    "unsupported": "지원하지 않아요",
+    "undo": "되돌리기",
+    "continue": "계속",
+    "error": {
+      "permission": "권한이 없어요. 이 그룹의 멤버인지 확인해 주세요.",
+      "signedOut": "로그인이 풀렸어요. 다시 로그인해 주세요.",
+      "network": "연결이 불안정해요. 네트워크를 확인하고 다시 시도해 주세요.",
+      "busy": "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.",
+      "conflict": "다른 변경과 겹쳤어요. 최신 상태를 확인하고 다시 시도해 주세요.",
+      "notFound": "찾을 수 없어요. 이미 삭제됐을 수 있어요.",
+      "popupClosed": "로그인 창이 닫혔어요. 다시 시도해 주세요.",
+      "invalidEmail": "이메일 주소를 확인해 주세요."
+    }
   },
   "auth": {
-    "profileError": "프로필을 불러오지 못했습니다. 새로고침해 주세요."
+    "profileError": "프로필을 불러오지 못했어요. 새로고침해 주세요.",
+    "nameTitle": "이름을 알려 주세요",
+    "nameBody": "그룹 멤버들에게 이렇게 보여요. 나중에 내 계정에서 바꿀 수 있어요.",
+    "nameLabel": "이름",
+    "nameError": "이름을 적어 주세요",
+    "nameDefaultError": "기본 이름 대신 실제 이름을 적어 주세요",
+    "nameSaving": "저장 중"
   },
   "notFound": {
     "title": "이 페이지가 없어요",
     "home": "홈으로"
   },
   "pwa": {
-    "iosHint": "Safari 공유 버튼에서 '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있습니다.",
+    "iosHint": "Safari 공유 버튼에서 '홈 화면에 추가'를 누르면 앱처럼 쓸 수 있어요.",
     "iosTitle": "홈 화면에 추가"
   },
   "signin": {
     "title": "로그인",
     "subtitle": "아는 사람끼리, 공평하게 번갈아 운전해요.",
     "inApp": {
-      "message": "오른쪽 위 메뉴의 '다른 브라우저로 열기'를 누르거나 아래 버튼을 눌러 주세요.",
+      "message": "아래 버튼으로 외부 브라우저에서 열면 바로 로그인할 수 있어요.",
       "open": "외부 브라우저로 열기",
-      "manual": "메뉴에서 '다른 브라우저로 열기'를 선택해 주세요.",
-      "title": "카카오톡 안에서는 Google 로그인이 되지 않아요"
+      "manual": "오른쪽 위 메뉴에서 '다른 브라우저로 열기'를 선택해 주세요.",
+      "title": "{{app}} 안에서는 Google 로그인이 되지 않아요",
+      "app": {
+        "kakaotalk": "카카오톡",
+        "line": "LINE",
+        "instagram": "Instagram",
+        "facebook": "Facebook"
+      }
     },
     "google": "Google로 계속하기",
     "kakao": "카카오로 계속하기",
@@ -84,12 +107,14 @@
     "emailPlaceholder": "name@company.com",
     "orEmail": "또는 이메일로",
     "consent": "계속하면 이용약관과 개인정보처리방침에 동의하게 돼요.",
-    "sending": "보내는 중"
+    "sending": "보내는 중",
+    "terms": "이용약관",
+    "privacy": "개인정보처리방침"
   },
   "signinFinish": {
     "title": "로그인 완료",
     "working": "로그인하는 중",
-    "needsEmail": "다른 기기에서 링크를 열었습니다. 링크를 받은 이메일을 입력하세요.",
+    "needsEmail": "다른 기기에서 링크를 열었어요. 링크를 받은 이메일을 적어 주세요.",
     "submit": "로그인",
     "invalid": "링크가 만료됐어요",
     "retry": "다시 받기",
@@ -99,13 +124,21 @@
   "join": {
     "title": "초대",
     "notFound": "초대 링크가 맞지 않아요",
-    "removed": "이 그룹에서 내보내진 계정입니다. 관리자에게 문의하세요.",
+    "removed": "이 그룹에서 내보내진 계정이에요. 관리자에게 문의해 주세요.",
     "invitedTo": "{{name}} 그룹에 초대받았어요.",
     "submit": "참여하기",
     "notFoundHint": "관리자에게 새 링크를 요청하거나 코드를 직접 입력해 주세요.",
     "enterCode": "코드 직접 입력",
     "groupLabel": "그룹",
-    "joining": "참여하는 중"
+    "joining": "참여하는 중",
+    "removedTitle": "참여할 수 없어요",
+    "invitedGeneric": "카풀 그룹에 초대받았어요.",
+    "signInToJoin": "로그인하면 바로 참여할 수 있어요.",
+    "alreadyMember": "이미 멤버예요",
+    "alreadyMemberHint": "이 그룹에 이미 참여하고 있어요.",
+    "goToGroup": "그룹으로 가기",
+    "nameFirst": "그룹에서 보일 이름을 먼저 알려 주세요.",
+    "joinAs": "{{name}} 님으로 참여해요."
   },
   "myGroups": {
     "title": "내 그룹",
@@ -125,7 +158,7 @@
     "step1": "기본 정보",
     "step2": "목적지",
     "step3": "운영 방식",
-    "later": "나중에",
+    "later": "건너뛰기",
     "nameError": "그룹 이름을 적어 주세요",
     "destinationHint": "모든 크루가 향하는 곳이에요. 길안내 버튼에 쓰여요.",
     "summaryCost": "비용",
@@ -133,7 +166,10 @@
     "summaryPlate": "부제",
     "cutoffValue": "전날 {{hour}}:00",
     "summaryHint": "운영 방식은 나중에 그룹 설정에서 바꿀 수 있어요.",
-    "creating": "만드는 중"
+    "creating": "만드는 중",
+    "created": "그룹을 만들었어요",
+    "createdHint": "초대 링크를 보내면 멤버가 바로 참여할 수 있어요.",
+    "createdLater": "나중에"
   },
   "group": {
     "name": "그룹 이름",
@@ -147,13 +183,14 @@
     "school": "학교",
     "club": "동호회",
     "church": "종교 단체",
-    "other": "기타"
+    "other": "기타",
+    "parents": "학부모 모임"
   },
   "settings": {
     "title": "그룹 설정",
     "costMode": "비용 방식",
     "absenceCutoffHour": "변경 마감 시각 (전날)",
-    "plateRotation": "차량 운행 제한 (부제)",
+    "plateRotation": "부제 (차량 운행 제한)",
     "allowedEmailDomains": "허용 이메일 도메인",
     "allowedEmailDomainsHint": "비워 두면 누구나 초대 링크로 참여할 수 있어요.",
     "basics": "기본",
@@ -163,7 +200,7 @@
     "domainAdd": "추가",
     "domainRemove": "{{domain}} 삭제",
     "domainPlaceholder": "company.com",
-    "domainsEmpty": "허용 도메인이 없어요. 누구나 참여할 수 있어요.",
+    "domainsEmpty": "아직 허용 도메인이 없어요.",
     "cutoffOption": "{{hour}}:00",
     "saving": "저장 중",
     "backToGroup": "그룹으로 가기"
@@ -184,7 +221,7 @@
     "copy": "링크 복사",
     "copied": "링크를 복사했어요",
     "rotate": "코드 바꾸기",
-    "rotateConfirm": "새 코드를 발급하면 기존 링크는 더 이상 쓸 수 없습니다. 계속할까요?",
+    "rotateConfirm": "새 코드를 발급하면 기존 링크는 더 이상 쓸 수 없어요. 계속할까요?",
     "share": "공유하기",
     "shareText": "{{name}} 카풀 그룹에 초대해요. 링크를 눌러 참여해 주세요.",
     "qrLabel": "초대 QR 코드",
@@ -207,12 +244,12 @@
     "noCrewsHint": "멤버를 보고 첫 크루를 제안해 보세요.",
     "proposeCrew": "크루 제안하기",
     "noUpcomingHint": "크루 요일에 맞춰 계획이 채워져요.",
-    "thisWeek": "이번 주",
+    "thisWeek": "앞으로 7일",
     "weeklyPlan": "주간 계획",
     "todayOut": "오늘 아침",
-    "todayBack": "오늘 퇴근",
+    "todayBack": "오늘 저녁",
     "tomorrowOut": "내일 아침",
-    "tomorrowBack": "내일 퇴근",
+    "tomorrowBack": "내일 저녁",
     "upcoming": "다음 운행",
     "departs": "{{time}} 출발",
     "returns": "{{time}} 귀가",
@@ -242,16 +279,25 @@
     "digestNoRiders": "없음",
     "digestDriverNeeded": "운전자 필요",
     "digestNone": "내일은 운행이 없어요.",
-    "driveMarker": "운전"
+    "driveMarker": "운전",
+    "pickupUnset": "탑승 장소 미정",
+    "pickupUnsetCaptain": "탑승 장소 미정 · 크루 설정에서 적어 주세요",
+    "proposalTitle": "{{crew}} 크루 제안이 왔어요",
+    "proposalBody": "수락하면 운행 계획에 들어가요. 원하지 않으면 거절할 수 있어요.",
+    "inviteFirst": "멤버를 먼저 초대해 주세요",
+    "inviteFirstHint": "크루는 멤버가 2명 이상일 때 제안할 수 있어요.",
+    "stepCrewLocked": "멤버가 2명 이상 되면 제안할 수 있어요",
+    "stepInviteDone": "멤버 {{count}}명이 참여했어요"
   },
   "place": {
     "clear": "지우기",
     "query": "주소 또는 장소 검색",
     "search": "검색",
-    "noResults": "검색 결과가 없습니다.",
+    "noResults": "검색 결과가 없어요",
     "selected": "선택한 장소",
     "searching": "검색 중",
-    "manualHint": "주소를 입력하고 검색을 누르세요."
+    "manualHint": "주소를 적고 검색을 눌러 주세요.",
+    "searchFailed": "주소를 찾는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요."
   },
   "members": {
     "title": "멤버",
@@ -279,12 +325,12 @@
   },
   "profile": {
     "title": "내 프로필",
-    "displayName": "표시 이름",
+    "displayName": "이름",
     "canDrive": "운전할 수 있어요",
     "seats": "태울 수 있는 인원",
     "plateLastDigit": "차량 번호 끝자리",
     "area": "출발 지역",
-    "areaHint": "정확한 주소는 다른 멤버에게 보이지 않아요. 약 100m 단위로만 저장돼요.",
+    "areaHint": "정확한 주소는 다른 멤버에게 보이지 않아요. 동·구 이름과 약 100m 단위 위치만 저장돼요.",
     "schedule": "평소 일정",
     "out": "출발",
     "back": "귀가",
@@ -298,7 +344,9 @@
     "weekdays": "요일",
     "saving": "저장 중",
     "dayOut": "{{day}} 출발",
-    "dayBack": "{{day}} 귀가"
+    "dayBack": "{{day}} 귀가",
+    "nameHint": "모든 그룹에서 같은 이름으로 보여요.",
+    "daysError": "출근 요일을 하나 이상 골라 주세요"
   },
   "me": {
     "title": "내 계정",
@@ -308,7 +356,7 @@
     "account": "계정",
     "notifications": "알림",
     "notifyOptIn": "저녁 운행 안내 알림",
-    "notifyHint": "앱이 열려 있을 때 18시 이후에 내일 운행을 한 번 알려요. 백그라운드 푸시는 서버(FCM)가 필요해서 아직 지원하지 않아요.",
+    "notifyHint": "앱이 열려 있을 때 18시 이후에 내일 운행을 한 번 알려요. 앱이 꺼져 있을 때는 아직 알림이 오지 않아요.",
     "notifyUnsupported": "이 브라우저는 알림을 지원하지 않아요.",
     "notifyDenied": "브라우저에서 알림이 차단돼 있어요. 사이트 설정에서 허용해 주세요.",
     "theme": "테마",
@@ -316,7 +364,8 @@
     "themeLight": "라이트",
     "themeDark": "다크",
     "saving": "저장 중",
-    "signingOut": "로그아웃 중"
+    "signingOut": "로그아웃 중",
+    "nameHint": "그룹에서 보이는 이름이에요."
   },
   "locale": {
     "ko": "한국어",
@@ -324,31 +373,50 @@
   },
   "crews": {
     "title": "크루",
-    "new": "새 크루",
+    "new": "크루 제안하기",
     "mine": "내 크루",
     "mineEmpty": "아직 크루가 없어요",
     "others": "다른 크루",
     "suggested": "추천 크루",
     "suggestNeedsProfile": "프로필에 출발 지역과 일정을 입력하면 추천받을 수 있어요.",
     "suggestEmpty": "아직 추천할 크루가 없어요",
-    "suggestUse": "이 멤버로 크루 만들기",
+    "suggestUse": "이 멤버로 크루 제안하기",
     "accept": "수락",
     "pending": "대기",
-    "created": "크루를 제안했습니다. 멤버들이 수락해야 합니다.",
-    "acceptedToast": "수락했습니다. 다른 멤버를 기다리는 중입니다.",
-    "activeToast": "모두 수락해 크루가 시작됐습니다.",
+    "created": "크루를 제안했어요. 멤버들이 수락하면 시작돼요.",
+    "acceptedToast": "수락했어요. 다른 멤버를 기다리고 있어요.",
+    "activeToast": "모두 수락해서 크루가 시작됐어요.",
     "status": {
       "proposed": "제안됨",
       "active": "운영 중",
-      "paused": "일시 중지"
+      "paused": "일시정지"
     },
     "mineEmptyHint": "멤버 2-6명으로 크루를 제안해 보세요.",
     "memberCount": "멤버 {{count}}명",
     "waiting": "{{count}}명 수락 대기",
     "proposedBanner": "제안된 크루예요. 전원이 수락하면 시작돼요.",
     "proposedWaiting": "수락을 기다리는 중이에요.",
-    "create": "크루 만들기",
-    "accepting": "수락 중"
+    "create": "크루 제안하기",
+    "accepting": "수락 중",
+    "decline": "거절",
+    "declineTitle": "크루 제안을 거절할까요?",
+    "declineBody": "크루에서 빠지고, 캡틴에게는 거절한 것으로 보여요.",
+    "declineAction": "거절하기",
+    "declined": "제안을 거절했어요.",
+    "declining": "거절 중",
+    "withdraw": "제안 취소",
+    "withdrawTitle": "이 크루 제안을 취소할까요?",
+    "withdrawBody": "크루가 삭제되고 멤버들에게 더 보이지 않아요.",
+    "withdrawAction": "취소하기",
+    "withdrawn": "크루 제안을 취소했어요.",
+    "pause": "크루 일시정지",
+    "pauseTitle": "이 크루를 일시정지할까요?",
+    "pauseBody": "새 운행 계획이 멈춰요. 장부와 멤버는 그대로예요. 언제든 다시 시작할 수 있어요.",
+    "pauseAction": "일시정지",
+    "resume": "크루 다시 시작",
+    "paused": "크루를 일시정지했어요.",
+    "resumed": "크루를 다시 시작했어요.",
+    "pausing": "처리 중"
   },
   "crewForm": {
     "name": "크루 이름",
@@ -362,12 +430,12 @@
     "submit": "크루 제안",
     "cancel": "취소",
     "error": {
-      "name": "크루 이름을 입력하세요.",
-      "size": "나를 포함해 2-6명을 고르세요.",
-      "driver": "운전 가능한 멤버가 한 명 이상 있어야 합니다.",
-      "days": "요일을 하나 이상 고르세요.",
-      "time": "출발 또는 귀가 시간을 입력하세요.",
-      "waitLimit": "최대 대기는 0-60분이어야 합니다."
+      "name": "크루 이름을 적어 주세요.",
+      "size": "나를 포함해 2-6명을 골라 주세요.",
+      "driver": "운전 가능한 멤버가 한 명 이상 필요해요.",
+      "days": "요일을 하나 이상 골라 주세요.",
+      "time": "출발 또는 귀가 시간을 적어 주세요.",
+      "waitLimit": "최대 대기는 0-60분 사이로 적어 주세요."
     },
     "membersHint": "나를 포함해 2-6명, 운전 가능한 멤버 1명 이상",
     "errorTitle": "확인해 주세요",
@@ -401,7 +469,7 @@
     "noDrive": "운전하지 않아요",
     "noRecords": "아직 기록이 없어요",
     "statTrips": "최근 4주 운행",
-    "statRate": "참여율",
+    "statRate": "완료율",
     "statMembers": "멤버",
     "shareWeek": "이번 주 공유",
     "shareWeekTitle": "{{crew}} 이번 주 계획",
@@ -413,10 +481,12 @@
     "churnDeclining": "최근 2주 참여율이 {{recent}}%로, 그 전 2주({{previous}}%)보다 낮아요.",
     "churnAtRisk": "자주 빠진 멤버: {{names}}",
     "churnAction": "대체 멤버 찾기",
-    "driverSeats": "운전 가능 · 좌석 {{seats}}",
+    "driverSeats": "운전 가능 · {{seats}}석",
     "riderOnly": "탑승만 해요",
     "droveCount": "최근 4주 {{count}}회 운전",
-    "statRateHint": "완료한 운행 비율"
+    "statRateHint": "지난 운행 중 완료한 비율",
+    "statNone": "-",
+    "pausedNote": "일시정지 중이에요. 다시 시작하면 운행 계획이 이어져요."
   },
   "trip": {
     "leg": {
@@ -427,25 +497,23 @@
     "driverNeeded": "운전자 필요",
     "riders": "탑승",
     "noRiders": "없음",
-    "absent": "불참",
+    "absent": "결석",
     "cutoff": "{{date}} {{hour}}시까지 변경 가능",
-    "frozen": "운행 계획이 확정됐습니다.",
+    "frozen": "운행 계획이 확정됐어요.",
     "markAbsent": "못 가요",
     "markBack": "갈게요",
     "cantDrive": "운전 못 해요",
     "volunteer": "제가 운전할게요",
     "done": "운행 완료",
     "doneTitle": "운행 완료",
-    "confirm": "확인",
-    "cancel": "취소",
     "completed": "이미 완료됨",
     "driverTaken": "이미 다른 크루원이 운전을 맡고 있어요. 최신 계획을 확인해 주세요.",
-    "alreadyApplied": "이미 기록된 운행입니다.",
-    "absentToast": "불참으로 표시했습니다.",
-    "backToast": "참석으로 표시했습니다.",
-    "gaveUpToast": "운전자가 필요합니다. 크루원이 지원할 수 있어요.",
-    "volunteeredToast": "운전을 맡았습니다. 고마워요!",
-    "completedToast": "운행을 기록했습니다.",
+    "alreadyApplied": "이미 기록된 운행이에요.",
+    "absentToast": "결석으로 표시했어요.",
+    "backToast": "다시 가는 걸로 표시했어요.",
+    "gaveUpToast": "운전을 넘겼어요. 운전할 수 있는 크루원이 맡을 수 있어요.",
+    "volunteeredToast": "운전을 맡았어요. 고마워요.",
+    "completedToast": "운행을 기록했어요.",
     "cost": {
       "amount": "유류비 / 통행료",
       "currency": "통화",
@@ -455,15 +523,15 @@
     "markAbsentTomorrow": "내일 못 가요",
     "markAbsentToday": "오늘 못 가요",
     "absentConfirmTitle": "{{date}} 못 가요?",
-    "absentConfirmBody": "마감 전이라 크루원에게 바로 알리고, 운전 순번은 그대로 유지돼요.",
+    "absentConfirmBody": "크루원은 앱을 열면 바로 보여요. 급하면 단톡방에도 알려 주세요. 운전 순번은 그대로예요.",
     "absentAction": "빠지기",
     "cantDriveTitle": "운전을 넘길까요?",
-    "cantDriveBody": "아무도 운전할 수 없으면 '운전자 필요'로 표시돼요.",
+    "cantDriveBody": "운전할 수 있는 크루원이 맡을 수 있어요. 아무도 맡지 않으면 '운전자 필요'로 남아요.",
     "cantDriveAction": "운전 넘기기",
     "volunteerTitle": "{{date}} 운전할까요?",
     "volunteerBody": "탑승자 수에 따라 운전 몫이 장부에 기록돼요.",
     "volunteerAction": "운전할게요",
-    "doneDescription": "탑승하지 않은 사람은 체크를 해제하세요.",
+    "doneDescription": "탑승하지 않은 사람은 체크를 해제해 주세요.",
     "doneSummary": "운전 {{name}}",
     "ridersCount": "탑승 {{count}}명",
     "record": "완료 기록",
@@ -480,28 +548,36 @@
     "ridersLine": "탑승 {{names}}",
     "absentLine": "결석 {{names}}",
     "absentBadge": "결석",
-    "youAbsent": "나는 빠져요",
-    "driveSuffix": "운전"
+    "youAbsent": "이번 운행은 빠져요",
+    "driveSuffix": "운전",
+    "notifyCrew": "크루에 알리기",
+    "notifyHint": "크루원은 앱을 열면 바로 보여요. 급하면 단톡방에도 알려 주세요.",
+    "absentDone": "{{date}} 운행은 결석으로 표시했어요.",
+    "gaveUpDone": "운전을 넘겼어요. 지금은 운전자가 필요한 상태예요.",
+    "volunteeredDone": "운전을 맡았어요. 고마워요.",
+    "shareAbsent": "{{name}}: {{date}} {{time}} {{crew}} 카풀에 못 가요. 운전 순번은 그대로예요.",
+    "shareGaveUp": "{{name}}: {{date}} {{time}} {{crew}} 운전을 못 하게 됐어요. 운전할 수 있는 분은 앱에서 '제가 운전할게요'를 눌러 주세요. {{url}}",
+    "shareVolunteer": "{{name}}: {{date}} {{time}} {{crew}} 운전을 맡을게요.",
+    "shareCopied": "메시지를 복사했어요. 단톡방에 붙여 넣어 주세요.",
+    "completing": "운행 완료를 기록해요. {{seconds}}초 안에 되돌릴 수 있어요.",
+    "completionUndone": "기록을 취소했어요."
   },
   "events": {
-    "title": "행사 카풀",
     "carFull": "이 차는 방금 자리가 다 찼어요.",
     "seatsBelowRiders": "이미 탄 사람 수보다 좌석을 적게 할 수 없어요."
   },
-  "admin": {
-    "title": "관리"
-  },
   "legal": {
     "kr": {
-      "rotationOnly": "한국에서는 자가용 유상 운송이 제한되어(여객자동차운수사업법 제81조) 돈을 주고받지 않고 운전 순번으로만 운영합니다."
+      "rotationOnly": "한국에서는 돈이 오가지 않는 교대 운전만 지원해요.",
+      "statute": "자가용 유상 운송은 여객자동차운수사업법 제81조로 제한돼요."
     },
-    "actualCost": "실제 든 비용만 나눕니다. 수익을 내는 운송은 현지 법을 확인하세요.",
-    "rotation": "돈을 주고받지 않고 운전 순번으로 공평하게 나눕니다."
+    "actualCost": "실제 든 비용만 나눠요. 수익을 내는 운송은 현지 법을 확인해 주세요.",
+    "rotation": "돈을 주고받지 않고 운전 순번으로 공평하게 나눠요."
   },
   "suggest": {
     "reason": {
-      "nearby": "서로 {{km}}km 이내에 삽니다",
-      "schedule": "{{matches}}일 일정이 겹칩니다",
+      "nearby": "서로 {{km}}km 이내에 살아요",
+      "schedule": "{{matches}}일 일정이 겹쳐요",
       "drivers": "운전 가능한 멤버 {{count}}명"
     }
   }

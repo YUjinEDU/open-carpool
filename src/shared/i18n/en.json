@@ -10,8 +10,8 @@
     "events": "Events",
     "members": "Members",
     "profile": "My profile",
-    "settings": "Settings",
-    "admin": "Admin",
+    "settings": "Group settings",
+    "admin": "Dashboard",
     "provider": {
       "title": "Open directions",
       "naver": "Naver Map",
@@ -30,10 +30,9 @@
   },
   "common": {
     "loading": "Loading…",
-    "unexpected": "Something went wrong",
+    "unexpected": "Something went wrong. Please try again.",
     "reload": "Reload",
     "dismiss": "Dismiss",
-    "errorWith": "Error: {{message}}",
     "saved": "Saved",
     "save": "Save",
     "adminsOnly": "Only group admins can see this.",
@@ -52,10 +51,28 @@
     "toGroup": "Go to group",
     "me": "me",
     "savedBadge": "Saved",
-    "unsupported": "Not supported"
+    "unsupported": "Not supported",
+    "undo": "Undo",
+    "continue": "Continue",
+    "error": {
+      "permission": "You do not have permission. Check that you are a member of this group.",
+      "signedOut": "You were signed out. Please sign in again.",
+      "network": "The connection is unstable. Check your network and try again.",
+      "busy": "Too many requests. Try again in a moment.",
+      "conflict": "Your change collided with another one. Check the latest state and try again.",
+      "notFound": "Not found. It may have been deleted.",
+      "popupClosed": "The sign-in window was closed. Try again.",
+      "invalidEmail": "Check the email address."
+    }
   },
   "auth": {
-    "profileError": "Could not load your profile. Please reload."
+    "profileError": "Could not load your profile. Please reload.",
+    "nameTitle": "What should we call you?",
+    "nameBody": "Crew members see this name. You can change it later under Account.",
+    "nameLabel": "Name",
+    "nameError": "Enter your name",
+    "nameDefaultError": "Replace the placeholder with your real name",
+    "nameSaving": "Saving"
   },
   "notFound": {
     "title": "This page does not exist",
@@ -69,10 +86,16 @@
     "title": "Sign in",
     "subtitle": "Take fair turns driving with people you know.",
     "inApp": {
-      "message": "Use 'Open in browser' from the top-right menu or the button below.",
+      "message": "Open it in your browser with the button below to sign in right away.",
       "open": "Open in your browser",
       "manual": "Use the menu and choose 'Open in browser'.",
-      "title": "Google sign-in does not work inside this app"
+      "title": "Google sign-in does not work inside {{app}}",
+      "app": {
+        "kakaotalk": "KakaoTalk",
+        "line": "LINE",
+        "instagram": "Instagram",
+        "facebook": "Facebook"
+      }
     },
     "google": "Continue with Google",
     "kakao": "Continue with Kakao",
@@ -84,7 +107,9 @@
     "emailPlaceholder": "name@company.com",
     "orEmail": "or with email",
     "consent": "By continuing you agree to the Terms and Privacy Policy.",
-    "sending": "Sending"
+    "sending": "Sending",
+    "terms": "Terms",
+    "privacy": "Privacy Policy"
   },
   "signinFinish": {
     "title": "Finishing sign-in",
@@ -105,7 +130,15 @@
     "notFoundHint": "Ask an admin for a new link or enter a code yourself.",
     "enterCode": "Enter a code",
     "groupLabel": "Group",
-    "joining": "Joining"
+    "joining": "Joining",
+    "removedTitle": "You cannot join",
+    "invitedGeneric": "You are invited to a carpool group.",
+    "signInToJoin": "Sign in to join right away.",
+    "alreadyMember": "You are already a member",
+    "alreadyMemberHint": "You already belong to this group.",
+    "goToGroup": "Go to group",
+    "nameFirst": "First, tell us the name the group should see.",
+    "joinAs": "Joining as {{name}}."
   },
   "myGroups": {
     "title": "My groups",
@@ -125,7 +158,7 @@
     "step1": "Basics",
     "step2": "Destination",
     "step3": "Policy",
-    "later": "Later",
+    "later": "Skip",
     "nameError": "Enter a group name",
     "destinationHint": "Where every crew is headed; used for the directions buttons.",
     "summaryCost": "Cost",
@@ -133,7 +166,10 @@
     "summaryPlate": "Plate rule",
     "cutoffValue": "{{hour}}:00 the day before",
     "summaryHint": "You can change these later in group settings.",
-    "creating": "Creating"
+    "creating": "Creating",
+    "created": "Your group is ready",
+    "createdHint": "Send the invite link and members can join right away.",
+    "createdLater": "Later"
   },
   "group": {
     "name": "Group name",
@@ -147,13 +183,14 @@
     "school": "School",
     "club": "Club",
     "church": "Religious community",
-    "other": "Other"
+    "other": "Other",
+    "parents": "Parents"
   },
   "settings": {
     "title": "Group settings",
     "costMode": "Cost sharing",
     "absenceCutoffHour": "Change cutoff (day before)",
-    "plateRotation": "Plate-number driving restriction",
+    "plateRotation": "Plate rule (driving restriction)",
     "allowedEmailDomains": "Allowed email domains",
     "allowedEmailDomainsHint": "Leave empty to let anyone with the invite link join.",
     "basics": "Basics",
@@ -163,7 +200,7 @@
     "domainAdd": "Add",
     "domainRemove": "Remove {{domain}}",
     "domainPlaceholder": "company.com",
-    "domainsEmpty": "No allowed domains: anyone can join.",
+    "domainsEmpty": "No allowed domains yet.",
     "cutoffOption": "{{hour}}:00",
     "saving": "Saving",
     "backToGroup": "Go to group"
@@ -207,7 +244,7 @@
     "noCrewsHint": "Look at the members and propose the first crew.",
     "proposeCrew": "Propose a crew",
     "noUpcomingHint": "The plan fills in on your crew's days.",
-    "thisWeek": "This week",
+    "thisWeek": "Next 7 days",
     "weeklyPlan": "Weekly plan",
     "todayOut": "This morning",
     "todayBack": "This evening",
@@ -242,16 +279,25 @@
     "digestNoRiders": "nobody",
     "digestDriverNeeded": "driver needed",
     "digestNone": "No trips tomorrow.",
-    "driveMarker": "drives"
+    "driveMarker": "drives",
+    "pickupUnset": "Pickup spot not set",
+    "pickupUnsetCaptain": "Pickup spot not set · add it in the crew settings",
+    "proposalTitle": "You were invited to the crew {{crew}}",
+    "proposalBody": "Accept to join its plan, or decline.",
+    "inviteFirst": "Invite members first",
+    "inviteFirstHint": "A crew can be proposed once the group has two members.",
+    "stepCrewLocked": "Available once there are two members",
+    "stepInviteDone": "{{count}} members joined"
   },
   "place": {
     "clear": "Clear",
     "query": "Search an address or place",
     "search": "Search",
-    "noResults": "No results.",
+    "noResults": "No results",
     "selected": "Selected place",
     "searching": "Searching",
-    "manualHint": "Type an address and press search."
+    "manualHint": "Type an address and press search.",
+    "searchFailed": "Address search failed. Try again in a moment."
   },
   "members": {
     "title": "Members",
@@ -279,12 +325,12 @@
   },
   "profile": {
     "title": "My profile",
-    "displayName": "Display name",
+    "displayName": "Name",
     "canDrive": "I can drive",
     "seats": "Passenger seats",
     "plateLastDigit": "Last digit of plate number",
     "area": "Home area",
-    "areaHint": "Your exact address is never shown to others; it is stored to about 100 m.",
+    "areaHint": "Your exact address is never shown to others; only the district name and a location rounded to about 100 m are stored.",
     "schedule": "Usual schedule",
     "out": "Leave",
     "back": "Return",
@@ -298,7 +344,9 @@
     "weekdays": "Days",
     "saving": "Saving",
     "dayOut": "{{day}} leave",
-    "dayBack": "{{day}} return"
+    "dayBack": "{{day}} return",
+    "nameHint": "Shown in every group you belong to.",
+    "daysError": "Pick at least one day"
   },
   "me": {
     "title": "Account",
@@ -308,7 +356,7 @@
     "account": "Account",
     "notifications": "Notifications",
     "notifyOptIn": "Evening trip reminder",
-    "notifyHint": "While the app is open, you get one reminder about tomorrow's trips after 18:00. Background push needs a server (FCM) and is not included yet.",
+    "notifyHint": "While the app is open you get one reminder about tomorrow's trips after 18:00. No reminders arrive while the app is closed yet.",
     "notifyUnsupported": "This browser does not support notifications.",
     "notifyDenied": "Notifications are blocked in the browser. Allow them in the site settings.",
     "theme": "Theme",
@@ -316,7 +364,8 @@
     "themeLight": "Light",
     "themeDark": "Dark",
     "saving": "Saving",
-    "signingOut": "Signing out"
+    "signingOut": "Signing out",
+    "nameHint": "This is the name your groups see."
   },
   "locale": {
     "ko": "한국어",
@@ -324,17 +373,17 @@
   },
   "crews": {
     "title": "Crews",
-    "new": "New crew",
+    "new": "Propose a crew",
     "mine": "My crews",
     "mineEmpty": "No crew yet",
     "others": "Other crews",
     "suggested": "Suggested crews",
     "suggestNeedsProfile": "Set your home area and schedule in your profile to get suggestions.",
     "suggestEmpty": "No suggestions yet",
-    "suggestUse": "Start a crew with them",
+    "suggestUse": "Propose a crew with them",
     "accept": "Accept",
-    "pending": "pending",
-    "created": "Crew proposed. Members need to accept it.",
+    "pending": "Pending",
+    "created": "Crew proposed. It starts once the members accept.",
     "acceptedToast": "Accepted. Waiting for the others.",
     "activeToast": "Everyone accepted. The crew is active.",
     "status": {
@@ -344,11 +393,30 @@
     },
     "mineEmptyHint": "Propose a crew with 2 to 6 members.",
     "memberCount": "{{count}} members",
-    "waiting": "Waiting for {{count}}",
+    "waiting": "Waiting for {{count}} to accept",
     "proposedBanner": "Proposed crew. It starts when everyone accepts.",
     "proposedWaiting": "Waiting for the others to accept.",
-    "create": "Create a crew",
-    "accepting": "Accepting"
+    "create": "Propose a crew",
+    "accepting": "Accepting",
+    "decline": "Decline",
+    "declineTitle": "Decline this crew?",
+    "declineBody": "You leave the proposal and the captain sees that you declined.",
+    "declineAction": "Decline",
+    "declined": "You declined the proposal.",
+    "declining": "Declining",
+    "withdraw": "Withdraw proposal",
+    "withdrawTitle": "Withdraw this proposal?",
+    "withdrawBody": "The crew is deleted and disappears for its members.",
+    "withdrawAction": "Withdraw",
+    "withdrawn": "Proposal withdrawn.",
+    "pause": "Pause crew",
+    "pauseTitle": "Pause this crew?",
+    "pauseBody": "No new trips are planned. The ledger and members stay. You can resume any time.",
+    "pauseAction": "Pause",
+    "resume": "Resume crew",
+    "paused": "Crew paused.",
+    "resumed": "Crew resumed.",
+    "pausing": "Working"
   },
   "crewForm": {
     "name": "Crew name",
@@ -401,7 +469,7 @@
     "noDrive": "Does not drive",
     "noRecords": "No trips yet",
     "statTrips": "Trips, last 4 weeks",
-    "statRate": "Attendance",
+    "statRate": "Completion",
     "statMembers": "Members",
     "shareWeek": "Share this week",
     "shareWeekTitle": "{{crew}} this week",
@@ -416,7 +484,9 @@
     "driverSeats": "Drives · {{seats}} seats",
     "riderOnly": "Rides only",
     "droveCount": "Drove {{count}} times in 4 weeks",
-    "statRateHint": "share of trips completed"
+    "statRateHint": "share of past trips completed",
+    "statNone": "-",
+    "pausedNote": "Paused. Resume to continue planning."
   },
   "trip": {
     "leg": {
@@ -427,7 +497,7 @@
     "driverNeeded": "Driver needed",
     "riders": "Riders",
     "noRiders": "Nobody",
-    "absent": "Not going",
+    "absent": "Absent",
     "cutoff": "Changes close {{date}} at {{hour}}:00",
     "frozen": "The plan is fixed.",
     "markAbsent": "Can't go",
@@ -436,15 +506,13 @@
     "volunteer": "I'll drive",
     "done": "Trip done",
     "doneTitle": "Trip done",
-    "confirm": "Confirm",
-    "cancel": "Cancel",
     "completed": "Already completed",
     "driverTaken": "Someone else already has this drive. Check the latest plan.",
     "alreadyApplied": "This trip was already recorded.",
-    "absentToast": "Marked as not going.",
-    "backToast": "Marked as going.",
-    "gaveUpToast": "A driver is needed: the crew can volunteer.",
-    "volunteeredToast": "You're driving. Thanks!",
+    "absentToast": "Marked as absent.",
+    "backToast": "Marked as going again.",
+    "gaveUpToast": "Driving handed over. A crew member who can drive may take it.",
+    "volunteeredToast": "You are driving. Thank you.",
     "completedToast": "Trip recorded.",
     "cost": {
       "amount": "Fuel / toll cost",
@@ -455,10 +523,10 @@
     "markAbsentTomorrow": "Can't go tomorrow",
     "markAbsentToday": "Can't go today",
     "absentConfirmTitle": "Not going on {{date}}?",
-    "absentConfirmBody": "Before the cutoff your crew is told right away and the rotation stays as it is.",
+    "absentConfirmBody": "Crew members see it when they open the app; tell the group chat too if it is urgent. The rotation stays as it is.",
     "absentAction": "Mark me absent",
     "cantDriveTitle": "Hand over driving?",
-    "cantDriveBody": "If nobody can drive, the trip is marked 'driver needed'.",
+    "cantDriveBody": "A crew member who can drive can take it. If nobody does, the trip stays 'driver needed'.",
     "cantDriveAction": "Hand over",
     "volunteerTitle": "Drive on {{date}}?",
     "volunteerBody": "Your driving share goes on the ledger based on who rides.",
@@ -480,20 +548,28 @@
     "ridersLine": "Riding {{names}}",
     "absentLine": "Absent {{names}}",
     "absentBadge": "Absent",
-    "youAbsent": "You are out",
-    "driveSuffix": "drives"
+    "youAbsent": "You are out for this trip",
+    "driveSuffix": "drives",
+    "notifyCrew": "Tell the crew",
+    "notifyHint": "Crew members see it when they open the app. If it is urgent, tell the group chat too.",
+    "absentDone": "You are marked absent for {{date}}.",
+    "gaveUpDone": "Driving handed over. A driver is needed now.",
+    "volunteeredDone": "You are driving. Thank you.",
+    "shareAbsent": "{{name}}: can't make the {{crew}} ride on {{date}} {{time}}. The rotation stays as it is.",
+    "shareGaveUp": "{{name}}: can't drive the {{crew}} ride on {{date}} {{time}}. If you can drive, tap 'I'll drive' in the app. {{url}}",
+    "shareVolunteer": "{{name}}: I'll drive the {{crew}} ride on {{date}} {{time}}.",
+    "shareCopied": "Message copied. Paste it into the group chat.",
+    "completing": "Recording the trip. You can undo within {{seconds}} seconds.",
+    "completionUndone": "Recording cancelled."
   },
   "events": {
-    "title": "Event rides",
     "carFull": "This car is full now.",
     "seatsBelowRiders": "Seats cannot be fewer than the riders who already joined."
   },
-  "admin": {
-    "title": "Admin"
-  },
   "legal": {
     "kr": {
-      "rotationOnly": "In Korea, paid rides in private cars are restricted (Passenger Transport Service Act, Art. 81), so groups run on driving turns only, with no money exchanged."
+      "rotationOnly": "In Korea the app supports driving turns only; no money changes hands.",
+      "statute": "Paid rides in private cars are restricted by the Passenger Transport Service Act, Art. 81."
     },
     "actualCost": "Only actual costs are split. Check local law before any for-profit rides.",
     "rotation": "No money changes hands: driving turns are shared fairly."
