@@ -111,6 +111,12 @@ describe('planTrips', () => {
     expect(trips[0]).toBe(done);
     expect(trips[1]).toBe(cancelled);
   });
+  it('does not project an open needs_driver trip as driven when picking later drivers', () => {
+    const open = trip(MON, { status: 'needs_driver', driverId: null, riderIds: ['a', 'b', 'c'] });
+    const [mon, tue] = planTrips(input({ existing: [open] }));
+    expect(mon).toMatchObject({ status: 'needs_driver', driverId: null, riderIds: ['a', 'b', 'c'] });
+    expect(tue.driverId).toBe('a');
+  });
   it('replans a cancelled trip of a scheduled day before the cutoff', () => {
     const cancelled = trip('2026-10-27', { status: 'cancelled', driverId: 'b', riderIds: ['a', 'c'] });
     const [, tue] = planTrips(input({ existing: [cancelled] }));

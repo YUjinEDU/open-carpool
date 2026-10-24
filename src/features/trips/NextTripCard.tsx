@@ -5,6 +5,7 @@ import { AlertTriangle, Car, ChevronRight, MapPin } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
 import { addDays, today } from '../../domain/dates';
 import { formatDate, joinNames } from '../../shared/lib/format';
+import { useNow } from '../../shared/lib/useNow';
 import { Avatar, AvatarStack, Badge, Button, Card } from '../../shared/ui';
 import { minutesUntilCutoff } from './cutoff';
 import { GROUP_TZ } from './hooks';
@@ -29,7 +30,7 @@ export function NextTripCard({ next: { crew, trip }, names }: NextTripCardProps)
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { group, me } = useGroup();
-  const now = new Date();
+  const now = useNow();
   const todayDate = today(GROUP_TZ, now);
   const tomorrow = addDays(todayDate, 1);
   const name = (uid: string) => names.get(uid) ?? uid;

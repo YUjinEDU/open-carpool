@@ -132,6 +132,18 @@ describe('driver changes', () => {
     expect((await tripOn(gid, cid, id))?.driverId).toBe(other(driver));
   });
 
+  it('puts the driver who gave up back among the riders', async () => {
+    const { gid, cid } = await activeCrew();
+    await syncCrewPlan({ gid, plan: await planFor(gid, cid, []) });
+    const id = `${MON}_out`;
+    const driver = (await tripOn(gid, cid, id))?.driverId ?? null;
+    await become(nameOf(driver));
+
+    await trips.giveUpDriving(gid, cid, id, uids[nameOf(driver)]);
+
+    expect([...((await tripOn(gid, cid, id))?.riderIds ?? [])].sort()).toEqual([uids.ann, uids.ben].sort());
+  });
+
   it('rejects giving up a trip someone else drives', async () => {
     const { gid, cid } = await activeCrew();
     await syncCrewPlan({ gid, plan: await planFor(gid, cid, []) });

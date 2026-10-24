@@ -4,6 +4,7 @@ import { useGroup } from '../../app/providers/group';
 import { addDays, today } from '../../domain/dates';
 import type { Crew, Trip } from '../../domain/types';
 import { formatDate } from '../../shared/lib/format';
+import { useNow } from '../../shared/lib/useNow';
 import { Button, Dialog, cx } from '../../shared/ui';
 import { CompleteSheet } from './CompleteSheet';
 import { GROUP_TZ } from './hooks';
@@ -26,14 +27,15 @@ export interface TripActionBarProps {
 export function TripActionBar({ crew, trip, names, variant = 'card', children }: TripActionBarProps) {
   const { t, i18n } = useTranslation();
   const { group, me } = useGroup();
-  const actions = tripActions(trip, { me, crew, now: new Date(), policy: group.policy, tz: GROUP_TZ });
+  const now = useNow();
+  const actions = tripActions(trip, { me, crew, now, policy: group.policy, tz: GROUP_TZ });
   const m = useTripMutations(crew, trip);
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [completing, setCompleting] = useState(false);
   const hero = variant === 'hero';
   const size = hero ? 'md' : 'sm';
   const date = formatDate(trip.date, i18n.language);
-  const todayDate = today(GROUP_TZ);
+  const todayDate = today(GROUP_TZ, now);
   const absentLabel =
     hero && trip.date === addDays(todayDate, 1) ? t('trip.markAbsentTomorrow') : hero && trip.date === todayDate ? t('trip.markAbsentToday') : t('trip.markAbsent');
 

@@ -62,7 +62,9 @@ export function planTrips({ crew, members, from, days, existing, now, tz = DEFAU
         return m !== undefined && m.canDrive && plateAllowed(policy.plateRotation, m.plateLastDigit, date);
       });
       const kept = prev?.driverId != null && eligible.includes(prev.driverId) ? prev.driverId : null;
-      const driverId = kept ?? pickDriver({ present, eligible, scores, lastDroveOn });
+      // An open needs_driver trip waits for a volunteer (reconcile keeps it open), so it is not driven by a pick.
+      const waiting = prev?.status === 'needs_driver';
+      const driverId = waiting ? null : (kept ?? pickDriver({ present, eligible, scores, lastDroveOn }));
       const status: TripStatus = driverId === null ? 'needs_driver' : 'planned';
       const trip: Trip = {
         id,

@@ -93,14 +93,17 @@ export async function volunteerToDrive(gid: string, cid: string, tripId: string,
   });
 }
 
-/** Hand back a trip the caller drives. Throws DriverTakenError when the caller is not its driver any more. */
+/** Hand back a trip the caller drives, riding along instead. Throws DriverTakenError when the caller is not its driver any more. */
 export async function giveUpDriving(gid: string, cid: string, tripId: string, uid: string): Promise<void> {
   const ref = tripRef(gid, cid, tripId);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error(`trip not found: ${tripId}`);
-    if (snap.data().driverId !== uid) throw new DriverTakenError(tripId);
-    tx.update(ref, { driverId: null, status: 'needs_driver' });
+    const trip = snap.data();
+    if (trip.driverId !== uid) throw new DriverTakenError(tripId);
+    // The ex-driver still rides unless absent; the planner would otherwise add them back only on its next run.
+    const riderIds = trip.absentIds.includes(uid) ? trip.riderIds : [...new Set([...trip.riderIds, uid])];
+    tx.update(ref, { driverId: null, status: 'needs_driver', riderIds });
   });
 }
 
