@@ -96,7 +96,17 @@
     "rotate": "Issue a new code",
     "rotateConfirm": "The current link stops working once a new code is issued. Continue?"
   },
-  "groupHome": { "myCrews": "My crews", "noCrews": "You're not in a crew yet.", "allCrews": "See all crews" },
+  "groupHome": {
+    "myCrews": "My crews",
+    "noCrews": "You're not in a crew yet.",
+    "allCrews": "See all crews",
+    "findCrew": "Find a crew",
+    "nextTrip": "Next trip",
+    "noUpcoming": "No upcoming trips this week.",
+    "noProfile": "Add your commute schedule so crews can be suggested.",
+    "setSchedule": "Set your schedule",
+    "openCrew": "Open crew"
+  },
   "place": { "clear": "Clear", "query": "Search an address or place", "search": "Search", "noResults": "No results." },
   "members": {
     "title": "Members",
@@ -120,8 +130,94 @@
   },
   "me": { "title": "Account", "displayName": "Name", "locale": "Language", "signOut": "Sign out" },
   "locale": { "ko": "한국어", "en": "English" },
-  "crews": { "title": "Crews" },
-  "crew": { "title": "Crew" },
+  "crews": {
+    "title": "Crews",
+    "new": "New crew",
+    "mine": "My crews",
+    "mineEmpty": "You're not in a crew yet.",
+    "others": "Other crews",
+    "suggested": "Suggested crews",
+    "suggestNeedsProfile": "Set your home area and schedule in your profile to get suggestions.",
+    "suggestEmpty": "No suggestions yet.",
+    "suggestUse": "Start a crew with them",
+    "accept": "Accept",
+    "pending": "pending",
+    "created": "Crew proposed. Members need to accept it.",
+    "acceptedToast": "Accepted. Waiting for the others.",
+    "activeToast": "Everyone accepted. The crew is active.",
+    "status": {
+      "proposed": "Proposed",
+      "active": "Active",
+      "paused": "Paused"
+    }
+  },
+  "crewForm": {
+    "name": "Crew name",
+    "members": "Members (2-6, you included)",
+    "driver": "drives",
+    "days": "Days",
+    "outTime": "Leave time",
+    "backTime": "Return time",
+    "pickupNote": "Pickup note",
+    "waitLimit": "Wait limit (minutes)",
+    "submit": "Propose crew",
+    "cancel": "Cancel",
+    "error": {
+      "name": "Enter a crew name.",
+      "size": "Pick 2 to 6 members, you included.",
+      "driver": "At least one member must be able to drive.",
+      "days": "Pick at least one day.",
+      "time": "Set a leave or return time.",
+      "waitLimit": "Wait limit must be 0-60 minutes."
+    }
+  },
+  "crew": {
+    "title": "Crew",
+    "notFound": "Crew not found.",
+    "pickup": "Pickup: {{note}}",
+    "waitLimit": "Waits up to {{min}} min",
+    "ledger": "Driving balance",
+    "ledgerHint": "Rides ahead (+) or behind (-) your fair share of driving.",
+    "captain": "Captain",
+    "backup": "Backup driver",
+    "rides": "{{rides}} rides",
+    "week": "This week",
+    "notActive": "The plan starts once every member accepts.",
+    "noTrips": "No trips in the next 7 days."
+  },
+  "trip": {
+    "leg": {
+      "out": "Leave",
+      "back": "Return"
+    },
+    "driver": "Driver",
+    "driverNeeded": "Driver needed",
+    "riders": "Riders",
+    "noRiders": "Nobody",
+    "absent": "Not going",
+    "cutoff": "Changes close {{date}} at {{hour}}:00",
+    "frozen": "The plan is fixed.",
+    "markAbsent": "Can't go",
+    "markBack": "I'm back",
+    "cantDrive": "Can't drive",
+    "volunteer": "I'll drive",
+    "done": "Trip done",
+    "doneTitle": "Who rode?",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "completed": "Already completed",
+    "absentToast": "Marked as not going.",
+    "backToast": "Marked as going.",
+    "gaveUpToast": "A driver is needed: the crew can volunteer.",
+    "volunteeredToast": "You're driving. Thanks!",
+    "completedToast": "Trip recorded.",
+    "cost": {
+      "amount": "Fuel / toll cost",
+      "currency": "Currency",
+      "save": "Add cost",
+      "owes": "{{name}} owes the driver {{amount}}"
+    }
+  },
   "events": { "title": "Event rides" },
   "admin": { "title": "Admin" },
   "legal": {

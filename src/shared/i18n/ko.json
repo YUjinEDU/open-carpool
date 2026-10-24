@@ -96,7 +96,17 @@
     "rotate": "코드 새로 발급",
     "rotateConfirm": "새 코드를 발급하면 기존 링크는 더 이상 쓸 수 없습니다. 계속할까요?"
   },
-  "groupHome": { "myCrews": "내 크루", "noCrews": "아직 속한 크루가 없습니다.", "allCrews": "모든 크루 보기" },
+  "groupHome": {
+    "myCrews": "내 크루",
+    "noCrews": "아직 속한 크루가 없습니다.",
+    "allCrews": "모든 크루 보기",
+    "findCrew": "크루 찾기",
+    "nextTrip": "다음 운행",
+    "noUpcoming": "이번 주 예정된 운행이 없습니다.",
+    "noProfile": "출퇴근 일정을 입력하면 크루를 추천받을 수 있어요.",
+    "setSchedule": "일정 입력하기",
+    "openCrew": "크루 열기"
+  },
   "place": { "clear": "지우기", "query": "주소 또는 장소 검색", "search": "검색", "noResults": "검색 결과가 없습니다." },
   "members": {
     "title": "멤버",
@@ -120,8 +130,94 @@
   },
   "me": { "title": "내 계정", "displayName": "이름", "locale": "언어", "signOut": "로그아웃" },
   "locale": { "ko": "한국어", "en": "English" },
-  "crews": { "title": "크루" },
-  "crew": { "title": "크루 상세" },
+  "crews": {
+    "title": "크루",
+    "new": "새 크루",
+    "mine": "내 크루",
+    "mineEmpty": "아직 속한 크루가 없습니다.",
+    "others": "다른 크루",
+    "suggested": "추천 크루",
+    "suggestNeedsProfile": "프로필에 출발 지역과 일정을 입력하면 추천받을 수 있어요.",
+    "suggestEmpty": "아직 추천할 크루가 없습니다.",
+    "suggestUse": "이 멤버로 크루 만들기",
+    "accept": "수락",
+    "pending": "대기",
+    "created": "크루를 제안했습니다. 멤버들이 수락해야 합니다.",
+    "acceptedToast": "수락했습니다. 다른 멤버를 기다리는 중입니다.",
+    "activeToast": "모두 수락해 크루가 시작됐습니다.",
+    "status": {
+      "proposed": "제안됨",
+      "active": "운영 중",
+      "paused": "일시 중지"
+    }
+  },
+  "crewForm": {
+    "name": "크루 이름",
+    "members": "멤버 (나 포함 2-6명)",
+    "driver": "운전 가능",
+    "days": "요일",
+    "outTime": "출발 시간",
+    "backTime": "귀가 시간",
+    "pickupNote": "탑승 장소 메모",
+    "waitLimit": "최대 대기 (분)",
+    "submit": "크루 제안",
+    "cancel": "취소",
+    "error": {
+      "name": "크루 이름을 입력하세요.",
+      "size": "나를 포함해 2-6명을 고르세요.",
+      "driver": "운전 가능한 멤버가 한 명 이상 있어야 합니다.",
+      "days": "요일을 하나 이상 고르세요.",
+      "time": "출발 또는 귀가 시간을 입력하세요.",
+      "waitLimit": "최대 대기는 0-60분이어야 합니다."
+    }
+  },
+  "crew": {
+    "title": "크루 상세",
+    "notFound": "크루를 찾을 수 없습니다.",
+    "pickup": "탑승 장소: {{note}}",
+    "waitLimit": "최대 {{min}}분 대기",
+    "ledger": "운전 균형",
+    "ledgerHint": "공평한 몫보다 더 운전했으면 +, 덜 운전했으면 - (회 단위).",
+    "captain": "캡틴",
+    "backup": "예비 운전자",
+    "rides": "{{rides}}회",
+    "week": "이번 주",
+    "notActive": "모든 멤버가 수락하면 운행 계획이 시작됩니다.",
+    "noTrips": "앞으로 7일 동안 운행이 없습니다."
+  },
+  "trip": {
+    "leg": {
+      "out": "출발",
+      "back": "귀가"
+    },
+    "driver": "운전",
+    "driverNeeded": "운전자 필요",
+    "riders": "탑승",
+    "noRiders": "없음",
+    "absent": "불참",
+    "cutoff": "{{date}} {{hour}}시까지 변경 가능",
+    "frozen": "운행 계획이 확정됐습니다.",
+    "markAbsent": "못 가요",
+    "markBack": "갈게요",
+    "cantDrive": "운전 못 해요",
+    "volunteer": "제가 운전할게요",
+    "done": "운행 완료",
+    "doneTitle": "누가 탔나요?",
+    "confirm": "확인",
+    "cancel": "취소",
+    "completed": "이미 완료됨",
+    "absentToast": "불참으로 표시했습니다.",
+    "backToast": "참석으로 표시했습니다.",
+    "gaveUpToast": "운전자가 필요합니다. 크루원이 지원할 수 있어요.",
+    "volunteeredToast": "운전을 맡았습니다. 고마워요!",
+    "completedToast": "운행을 기록했습니다.",
+    "cost": {
+      "amount": "유류비 / 통행료",
+      "currency": "통화",
+      "save": "비용 추가",
+      "owes": "{{name}} 님이 운전자에게 {{amount}}"
+    }
+  },
   "events": { "title": "행사 카풀" },
   "admin": { "title": "관리" },
   "legal": {

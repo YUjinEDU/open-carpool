@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { applyTrip } from '../domain/rotation';
-import type { Scores, Trip } from '../domain/types';
+import type { Scores, Trip, TripCost } from '../domain/types';
 import { idConverter, nowIso } from './converters';
 import { crewRef } from './crews';
 
@@ -67,6 +67,11 @@ export async function volunteerToDrive(gid: string, cid: string, tripId: string,
 
 export async function giveUpDriving(gid: string, cid: string, tripId: string): Promise<void> {
   await updateDoc(tripRef(gid, cid, tripId), { driverId: null, status: 'needs_driver' });
+}
+
+/** Record the actual cost of a done trip (rules allow only `cost` to change after completion). */
+export async function setTripCost(gid: string, cid: string, tripId: string, cost: TripCost): Promise<void> {
+  await updateDoc(tripRef(gid, cid, tripId), { cost });
 }
 
 /** Mark a trip done and apply it to the crew ledger exactly once. Returns the new scores. */
