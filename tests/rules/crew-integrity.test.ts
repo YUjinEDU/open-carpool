@@ -102,3 +102,57 @@ describe('crew captain', () => {
     await assertSucceeds(crewDoc('admin').update({ captainId: 'bob' }));
   });
 });
+
+describe('declining a proposal', () => {
+  it('lets an invited member drop only themselves from the proposal', async () => {
+    await assertSucceeds(crewDoc('bob', PROPOSED).update({ memberIds: ['alice', 'carol'], acceptedIds: ['alice'], backupDriverIds: [] }));
+  });
+
+  it('denies dropping anyone else, the captain leaving, or declining an active crew', async () => {
+    await assertFails(crewDoc('bob', PROPOSED).update({ memberIds: ['alice'], acceptedIds: ['alice'], backupDriverIds: [] }));
+    await assertFails(crewDoc('bob', PROPOSED).update({ memberIds: ['alice', 'bob'], acceptedIds: ['alice'], backupDriverIds: [] }));
+    await assertFails(crewDoc('alice', PROPOSED).update({ memberIds: ['bob', 'carol'], acceptedIds: [], backupDriverIds: [] }));
+    await assertFails(crewDoc('bob').update({ memberIds: ['alice'], acceptedIds: ['alice'], backupDriverIds: [] }));
+  });
+
+  it('denies a decline that also touches other fields', async () => {
+    await assertFails(crewDoc('bob', PROPOSED).update({ memberIds: ['alice', 'carol'], acceptedIds: ['alice'], backupDriverIds: [], name: 'Mine' }));
+  });
+});
+
+describe('withdrawing a proposal', () => {
+  const TWO = 'c3';
+  beforeEach(async () => {
+    // c3: alice proposed a two-person crew with bob.
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.firestore().doc(`groups/${GID}/crews/${TWO}`).set({
+        name: 'Pair', memberIds: ['alice', 'bob'], captainId: 'alice', backupDriverIds: [],
+        acceptedIds: ['alice'], status: 'proposed', days: [1], outTime: '08:00', backTime: null, pickupNote: '',
+        waitLimitMin: 10, scores: { alice: 0, bob: 0 }, lastDroveOn: {}, createdBy: 'alice', createdAt: NOW,
+      }),
+    );
+  });
+
+  it('lets the captain or an admin delete a proposal that never ran', async () => {
+    await assertSucceeds(crewDoc('alice', PROPOSED).delete());
+    await assertSucceeds(crewDoc('admin', TWO).delete());
+  });
+
+  it('lets the other half of a two-person proposal decline by deleting it', async () => {
+    await assertSucceeds(crewDoc('bob', TWO).delete());
+  });
+
+  it('denies a member of a larger proposal, a non-member, or anyone deleting an active crew', async () => {
+    await assertFails(crewDoc('bob', PROPOSED).delete());
+    await assertFails(crewDoc('carol', TWO).delete());
+    await assertFails(crewDoc('alice').delete());
+    await assertFails(crewDoc('admin').delete());
+  });
+
+  it('denies deleting a re-proposed crew that already has ledger history', async () => {
+    await env.withSecurityRulesDisabled((ctx) =>
+      ctx.firestore().doc(`groups/${GID}/crews/${TWO}`).update({ lastDroveOn: { alice: '2026-10-20' } }),
+    );
+    await assertFails(crewDoc('alice', TWO).delete());
+  });
+});

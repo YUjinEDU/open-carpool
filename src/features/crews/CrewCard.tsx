@@ -1,32 +1,32 @@
-import { type MouseEvent } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { Check, ChevronRight } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
-import { acceptCrew } from '../../data/crews';
 import type { Crew } from '../../domain/types';
-import { useAction } from '../../shared/lib/useAction';
-import { AvatarStack, Badge, Button, Card, showToast } from '../../shared/ui';
+import { AvatarStack, Badge, Banner, Button, Card, Dialog } from '../../shared/ui';
 import { weekdayRange } from '../profile/schedule';
+import { useProposalActions } from './useProposalActions';
 
 export interface CrewCardProps {
   readonly crew: Crew;
   readonly names: ReadonlyMap<string, string>;
 }
 
-/** One crew in the crews list: who, when, status, and Accept for proposals I have not answered. */
+/** One crew in the crews list: who, when, status, and Accept / Decline for proposals I have not answered. */
 export function CrewCard({ crew, names }: CrewCardProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { group, me } = useGroup();
+  const { group } = useGroup();
   const href = `/g/${group.id}/crews/${crew.id}`;
   const name = (uid: string) => names.get(uid) ?? uid;
   const pending = crew.memberIds.filter((uid) => !crew.acceptedIds.includes(uid));
-  const canAccept = crew.status === 'proposed' && crew.memberIds.includes(me.uid) && !crew.acceptedIds.includes(me.uid);
-  const accept = useAction(async () => {
-    const updated = await acceptCrew(group.id, crew.id, me.uid);
-    showToast(t(updated.status === 'active' ? 'crews.activeToast' : 'crews.acceptedToast'), 'success');
-  });
+  const { canRespond, accept, decline } = useProposalActions(crew);
+  const [declining, setDeclining] = useState(false);
+  const closeDecline = () => {
+    setDeclining(false);
+    decline.clearError();
+  };
   const open = (event: MouseEvent<HTMLElement>) => {
     event.preventDefault();
     navigate(href);
@@ -39,9 +39,8 @@ export function CrewCard({ crew, names }: CrewCardProps) {
     ) : (
       <Badge data-testid="crew-card-status">{t('crews.status.paused')}</Badge>
     );
-  const times = [crew.outTime && `${t('trip.leg.out')} ${crew.outTime}`, crew.backTime && `${t('trip.leg.back')} ${crew.backTime}`]
-    .filter(Boolean)
-    .join(' · ');
+  // One time per line: "출발 07:40 · 귀가 18:30" wrapped mid-pair at phone widths.
+  const times = [crew.outTime && `${t('trip.leg.out')} ${crew.outTime}`, crew.backTime && `${t('trip.leg.back')} ${crew.backTime}`].filter(Boolean);
 
   return (
     <Card as="li" padding="none" data-testid={`crew-card-${crew.id}`}>
@@ -50,7 +49,13 @@ export function CrewCard({ crew, names }: CrewCardProps) {
         <span className="min-w-0 flex-1">
           <span className="block truncate text-body font-medium text-ink">{crew.name}</span>
           <span className="mt-0.5 block truncate text-sub text-ink-2">{weekdayRange(crew.days, i18n.language)}</span>
-          {times && <span className="block text-sub tabular-nums text-ink-2">{times}</span>}
+          {times.length > 0 && (
+            <span className="flex flex-wrap gap-x-3 text-sub tabular-nums text-ink-2">
+              {times.map((time) => (
+                <span key={time} className="whitespace-nowrap">{time}</span>
+              ))}
+            </span>
+          )}
         </span>
         {status}
         <ChevronRight aria-hidden="true" className="size-5 shrink-0 text-ink-3" />
@@ -60,12 +65,34 @@ export function CrewCard({ crew, names }: CrewCardProps) {
           {crew.memberIds.map((uid) => name(uid)).join(', ')}
           {crew.status === 'proposed' && pending.length > 0 && ` · ${t('crews.waiting', { count: pending.length })}`}
         </p>
-        {canAccept && (
-          <Button size="sm" loading={accept.busy} loadingLabel={t('crews.accepting')} onClick={() => accept.run()} className="self-start" data-testid="crew-accept">
-            {t('crews.accept')}
-          </Button>
+        {canRespond && (
+          <div className="flex flex-wrap gap-2">
+            <Button loading={accept.busy} loadingLabel={t('crews.accepting')} onClick={() => accept.run()} data-testid="crew-accept">
+              {t('crews.accept')}
+            </Button>
+            <Button variant="ghost" onClick={() => setDeclining(true)} data-testid="crew-decline">
+              {t('crews.decline')}
+            </Button>
+          </div>
         )}
       </div>
+      <Dialog
+        open={declining}
+        onClose={closeDecline}
+        role="alertdialog"
+        title={t('crews.declineTitle')}
+        description={t('crews.declineBody')}
+        actions={
+          <>
+            <Button variant="secondary" onClick={closeDecline}>{t('common.cancel')}</Button>
+            <Button variant="danger" loading={decline.busy} loadingLabel={t('crews.declining')} onClick={() => decline.run(closeDecline)} data-testid="crew-decline-confirm">
+              {t('crews.declineAction')}
+            </Button>
+          </>
+        }
+      >
+        {decline.error && <Banner variant="danger">{decline.error}</Banner>}
+      </Dialog>
     </Card>
   );
 }

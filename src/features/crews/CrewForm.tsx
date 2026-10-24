@@ -28,6 +28,7 @@ export function CrewForm({ members, initialMemberIds = [], onDone }: CrewFormPro
     set({ memberIds: on ? [...draft.memberIds, uid] : draft.memberIds.filter((id) => id !== uid) });
   const dayOptions = WEEKDAYS.map((d) => ({ value: `${d}` as DayKey, label: weekdayName(d, i18n.language), testId: `crew-day-${d}` }));
 
+  // Validation stays next to each field (one live announcement per error); only a write failure gets a banner.
   const create = useAction(async () => {
     const parsed = parseCrewDraft(draft, members, me.uid);
     if (parsed.kind === 'invalid') {
@@ -37,7 +38,7 @@ export function CrewForm({ members, initialMemberIds = [], onDone }: CrewFormPro
     await createCrew(group.id, parsed.input, me.uid);
     showToast(t('crews.created'), 'success');
     onDone();
-  });
+  }, { report: 'inline' });
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     create.run();
@@ -134,13 +135,9 @@ export function CrewForm({ members, initialMemberIds = [], onDone }: CrewFormPro
         />
       </Card>
 
-      {errors.length > 0 && (
+      {create.error && (
         <Banner variant="danger" title={t('crewForm.errorTitle')} data-testid="crew-form-errors">
-          <ul className="list-disc pl-4">
-            {errors.map((err) => (
-              <li key={err}>{t(`crewForm.error.${err}`)}</li>
-            ))}
-          </ul>
+          {create.error}
         </Banner>
       )}
 

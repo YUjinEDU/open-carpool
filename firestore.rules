@@ -65,7 +65,7 @@ service cloud.firestore {
       return d.keys().hasOnly(['name', 'type', 'country', 'locale', 'ownerId', 'inviteCode', 'allowedEmailDomains',
                                'destination', 'policy', 'createdAt'])
         && name(d.name)
-        && d.type in ['company', 'university', 'club', 'school', 'church', 'other']
+        && d.type in ['company', 'university', 'club', 'school', 'parents', 'church', 'other']
         && str(d.country, 3)
         && d.locale in ['ko', 'en']
         && id(d.ownerId)
@@ -215,6 +215,21 @@ service cloud.firestore {
         && (s0 == s1 || (s0 in ['active', 'paused'] && s1 in ['active', 'paused']))
         && request.resource.data.memberIds.toSet().hasAll(request.resource.data.backupDriverIds);
     }
+    // Declining a proposal: the caller (not the captain) drops only themselves from memberIds, acceptedIds
+    // and backupDriverIds; nothing else moves and the crew stays proposed (validCrew keeps it at 2+ members).
+    function isOwnDecline() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let mine = [me()].toSet();
+      return before.status == 'proposed' && after.status == 'proposed'
+        && me() != before.captainId
+        && onlyChanged(['memberIds', 'acceptedIds', 'backupDriverIds'])
+        && me() in before.memberIds
+        && after.memberIds.size() == before.memberIds.size() - 1
+        && after.memberIds.toSet() == before.memberIds.toSet().difference(mine)
+        && after.acceptedIds.toSet() == before.acceptedIds.toSet().difference(mine)
+        && after.backupDriverIds.toSet() == before.backupDriverIds.toSet().difference(mine);
+    }
     // A membership change restarts acceptance: only the captain has accepted and the crew is proposed again.
     function isMembershipChange() {
       return onlyChanged(['memberIds', 'acceptedIds', 'status'])
@@ -330,8 +345,8 @@ service cloud.firestore {
           && startsWithEmptyLedger(request.resource.data);
 
         allow update: if isActiveMember(gid) && validCrew(request.resource.data) && (
-          // (a) accept for yourself
-          (me() in resource.data.memberIds && isOwnAcceptance())
+          // (a) accept for yourself, or decline (leave the proposal)
+          (me() in resource.data.memberIds && (isOwnAcceptance() || isOwnDecline()))
           // (b)+(d) settings and captain handover: captain or admin; the captain stays a crew member (validCrew)
           || ((me() == resource.data.captainId || isAdmin(gid)) && isCrewSettingsEdit())
           // (c) membership: captain or admin, 2..6 (validCrew), acceptance restarts
@@ -341,6 +356,14 @@ service cloud.firestore {
               && onlyChanged(['scores', 'lastDroveOn', 'ledgerTripId'])
               && ledgerMoveBackedByTrip(gid, cid))
         );
+        // Withdrawing a proposal that never ran: captain or admin, or the other half of a two-person
+        // proposal declining it. A crew that completed a trip (lastDroveOn set) is never deleted.
+        allow delete: if isActiveMember(gid)
+          && resource.data.status == 'proposed'
+          && resource.data.lastDroveOn.size() == 0
+          && (me() == resource.data.captainId
+              || isAdmin(gid)
+              || (me() in resource.data.memberIds && resource.data.memberIds.size() == 2));
 
         match /trips/{tid} {
           allow read: if isActiveMember(gid);

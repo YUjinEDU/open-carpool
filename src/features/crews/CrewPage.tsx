@@ -1,28 +1,29 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-import { Car, Check, Share2, UserX } from 'lucide-react';
+import { Car, Check, Pause, Play, Share2, UserX } from 'lucide-react';
 import { ErrorBanner } from '../../app/fallbacks';
 import { useGroup } from '../../app/providers/group';
 import { PageBody } from '../../app/shell/PageBody';
 import { useBack } from '../../app/shell/useBack';
-import { acceptCrew } from '../../data/crews';
+import { setCrewStatus, withdrawCrew } from '../../data/crews';
 import { listTrips } from '../../data/trips';
 import { CHURN_WINDOW_DAYS, detectChurn } from '../../domain/churn';
 import { addDays, today } from '../../domain/dates';
-import { legalNoticeKey } from '../../domain/policies';
 import { pickDriver, scoreInRides } from '../../domain/rotation';
 import type { Crew, Member, Trip } from '../../domain/types';
 import { formatDate, joinNames } from '../../shared/lib/format';
 import { useLoad } from '../../shared/lib/loadable';
 import { useAction } from '../../shared/lib/useAction';
-import { Avatar, Badge, Banner, Button, Card, CardHeader, EmptyState, LedgerBar, List, ListItem, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
+import { Avatar, Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, LedgerBar, List, ListItem, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
+import { LegalNotice } from '../groups/LegalNotice';
 import { NavLinks } from '../map/NavLinks';
 import { useMembers } from '../members/hooks';
 import { GROUP_TZ, useCrewPlan } from '../trips/hooks';
 import { compareTrips, legTime } from '../trips/nextTrip';
 import { TripCard } from '../trips/TripCard';
 import { useCrews } from './hooks';
+import { useProposalActions } from './useProposalActions';
 import { weekdayRange } from '../profile/schedule';
 
 /** `/g/:gid/crews/:cid`: members, ledger and this week's plan. */
@@ -84,7 +85,7 @@ const roundRides = (units: number): number => Math.round(scoreInRides(units) * 1
 function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly members: readonly Member[]; readonly onBack: () => void }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { group, me } = useGroup();
+  const { group, me, isAdmin } = useGroup();
   const trips = useCrewPlan(crew, members);
   const todayDate = today(GROUP_TZ);
   const [past] = useLoad(
@@ -95,17 +96,38 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
   const names = useMemo(() => new Map(members.map((m) => [m.uid, m.displayName])), [members]);
   const name = (uid: string) => names.get(uid) ?? uid;
   const isCaptain = crew.captainId === me.uid;
-  const canAccept = crew.status === 'proposed' && crew.memberIds.includes(me.uid) && !crew.acceptedIds.includes(me.uid);
-
-  const accept = useAction(async () => {
-    const updated = await acceptCrew(group.id, crew.id, me.uid);
-    showToast(t(updated.status === 'active' ? 'crews.activeToast' : 'crews.acceptedToast'), 'success');
+  const manages = isCaptain || isAdmin;
+  const { canRespond, accept, decline } = useProposalActions(crew);
+  const [declining, setDeclining] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const closeDecline = () => {
+    setDeclining(false);
+    decline.clearError();
+  };
+  // A proposal that never ran can be withdrawn (deleted); one with ledger history cannot (rules).
+  const canWithdraw = manages && crew.status === 'proposed' && Object.keys(crew.lastDroveOn).length === 0;
+  const withdraw = useAction(async () => {
+    await withdrawCrew(group.id, crew.id);
+    setWithdrawing(false);
+    showToast(t('crews.withdrawn'), 'info');
+    navigate(`/g/${group.id}/crews`, { replace: true });
+  }, { report: 'inline' });
+  const pause = useAction(async () => {
+    await setCrewStatus(group.id, crew.id, 'paused');
+    setPausing(false);
+    showToast(t('crews.paused'), 'info');
+  }, { report: 'inline' });
+  const resume = useAction(async () => {
+    await setCrewStatus(group.id, crew.id, 'active');
+    showToast(t('crews.resumed'), 'success');
   });
 
   const pastTrips: readonly Trip[] = past.status === 'ready' ? past.data : [];
   const churn = useMemo(() => detectChurn(pastTrips, crew, todayDate), [pastTrips, crew, todayDate]);
   const doneCount = pastTrips.filter((trip) => trip.status === 'done').length;
-  const counted = pastTrips.filter((trip) => trip.status !== 'cancelled').length;
+  // Only trips that are over count: today's still-planned legs are not misses, and a new crew shows "-" rather than 0%.
+  const counted = pastTrips.filter((trip) => trip.status !== 'cancelled' && (trip.status === 'done' || trip.date < todayDate)).length;
   const droveCount = (uid: string) => pastTrips.filter((trip) => trip.status === 'done' && trip.driverId === uid).length;
 
   const ledger: readonly LedgerRowView[] = useMemo(
@@ -188,14 +210,23 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
             variant="info"
             title={t('crews.proposedBanner')}
             action={
-              canAccept ? (
-                <Button size="sm" variant="secondary" loading={accept.busy} loadingLabel={t('crews.accepting')} onClick={() => accept.run()} data-testid="crew-accept">
-                  {t('crews.accept')}
+              canRespond ? (
+                <span className="flex flex-wrap gap-2">
+                  <Button loading={accept.busy} loadingLabel={t('crews.accepting')} onClick={() => accept.run()} data-testid="crew-accept">
+                    {t('crews.accept')}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setDeclining(true)} data-testid="crew-decline">
+                    {t('crews.decline')}
+                  </Button>
+                </span>
+              ) : canWithdraw ? (
+                <Button variant="ghost" onClick={() => setWithdrawing(true)} data-testid="crew-withdraw">
+                  {t('crews.withdraw')}
                 </Button>
               ) : undefined
             }
           >
-            {!canAccept && t('crews.proposedWaiting')}
+            {!canRespond && t('crews.proposedWaiting')}
           </Banner>
         )}
 
@@ -205,7 +236,7 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
             title={t('crew.churnTitle')}
             data-testid="churn-banner"
             action={
-              <Button size="sm" variant="secondary" onClick={() => navigate(`/g/${group.id}/crews`)}>
+              <Button variant="secondary" onClick={() => navigate(`/g/${group.id}/crews`)}>
                 {t('crew.churnAction')}
               </Button>
             }
@@ -252,7 +283,12 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
         <Card as="section">
           <div className="grid grid-cols-3 gap-3">
             <Stat value={past.status === 'ready' ? doneCount : <Skeleton className="h-7 w-10" />} label={t('crew.statTrips')} />
-            <Stat value={past.status === 'ready' ? `${counted === 0 ? 0 : Math.round((doneCount / counted) * 100)}%` : <Skeleton className="h-7 w-10" />} label={t('crew.statRate')} />
+            <Stat
+              value={past.status === 'ready' ? (counted === 0 ? t('crew.statNone') : `${Math.round((doneCount / counted) * 100)}%`) : <Skeleton className="h-7 w-10" />}
+              label={t('crew.statRate')}
+              hint={t('crew.statRateHint')}
+              data-testid="crew-stat-rate"
+            />
             <Stat value={crew.memberIds.length} label={t('crew.statMembers')} />
           </div>
         </Card>
@@ -267,7 +303,8 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
               </Button>
             }
           />
-          {crew.status !== 'active' && <p className="px-4 pb-4 pt-2 text-sub text-ink-2">{t('crew.notActive')}</p>}
+          {crew.status === 'proposed' && <p className="px-4 pb-4 pt-2 text-sub text-ink-2">{t('crew.notActive')}</p>}
+          {crew.status === 'paused' && <p className="px-4 pb-4 pt-2 text-sub text-ink-2">{t('crew.pausedNote')}</p>}
           {crew.status === 'active' && trips.status === 'loading' && (
             <div className="flex flex-col gap-3 p-4">
               <Skeleton className="h-14" />
@@ -325,10 +362,71 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
           )}
         </Card>
 
-        <p className="px-1 text-caption text-ink-3" data-testid="crew-legal-notice">
-          {t(legalNoticeKey(group))}
-        </p>
+        {manages && crew.status === 'active' && (
+          <Button variant="ghost" leadingIcon={<Pause />} className="self-start" onClick={() => setPausing(true)} data-testid="crew-pause">
+            {t('crews.pause')}
+          </Button>
+        )}
+        {manages && crew.status === 'paused' && (
+          <Button variant="secondary" leadingIcon={<Play />} className="self-start" loading={resume.busy} onClick={() => resume.run()} data-testid="crew-resume">
+            {t('crews.resume')}
+          </Button>
+        )}
+
+        <LegalNotice group={group} variant="caption" data-testid="crew-legal-notice" />
       </PageBody>
+
+      <Dialog
+        open={declining}
+        onClose={closeDecline}
+        role="alertdialog"
+        title={t('crews.declineTitle')}
+        description={t('crews.declineBody')}
+        actions={
+          <>
+            <Button variant="secondary" onClick={closeDecline}>{t('common.cancel')}</Button>
+            <Button variant="danger" loading={decline.busy} loadingLabel={t('crews.declining')} onClick={() => decline.run(() => { closeDecline(); navigate(`/g/${group.id}/crews`, { replace: true }); })} data-testid="crew-decline-confirm">
+              {t('crews.declineAction')}
+            </Button>
+          </>
+        }
+      >
+        {decline.error && <Banner variant="danger">{decline.error}</Banner>}
+      </Dialog>
+      <Dialog
+        open={withdrawing}
+        onClose={() => { setWithdrawing(false); withdraw.clearError(); }}
+        role="alertdialog"
+        title={t('crews.withdrawTitle')}
+        description={t('crews.withdrawBody')}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setWithdrawing(false)}>{t('common.cancel')}</Button>
+            <Button variant="danger" loading={withdraw.busy} onClick={() => withdraw.run()} data-testid="crew-withdraw-confirm">
+              {t('crews.withdrawAction')}
+            </Button>
+          </>
+        }
+      >
+        {withdraw.error && <Banner variant="danger">{withdraw.error}</Banner>}
+      </Dialog>
+      <Dialog
+        open={pausing}
+        onClose={() => { setPausing(false); pause.clearError(); }}
+        role="alertdialog"
+        title={t('crews.pauseTitle')}
+        description={t('crews.pauseBody')}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setPausing(false)}>{t('common.cancel')}</Button>
+            <Button loading={pause.busy} loadingLabel={t('crews.pausing')} onClick={() => pause.run()} data-testid="crew-pause-confirm">
+              {t('crews.pauseAction')}
+            </Button>
+          </>
+        }
+      >
+        {pause.error && <Banner variant="danger">{pause.error}</Banner>}
+      </Dialog>
     </>
   );
 }

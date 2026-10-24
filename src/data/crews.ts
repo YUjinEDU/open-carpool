@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -68,6 +69,40 @@ export async function acceptCrew(gid: string, cid: string, uid: string): Promise
     tx.update(crewRef(gid, cid), { acceptedIds, status });
     return { ...crew, acceptedIds, status };
   });
+}
+
+/**
+ * Decline a proposed crew: the caller leaves memberIds (and acceptedIds / backupDriverIds). A
+ * two-person proposal cannot exist without both, so declining it withdraws the proposal instead.
+ */
+export async function declineCrew(gid: string, cid: string, uid: string): Promise<void> {
+  await runTransaction(db, async (tx) => {
+    const snap = await tx.get(crewRef(gid, cid));
+    if (!snap.exists()) throw new CrewInputError(`crew not found: ${cid}`);
+    const crew = snap.data();
+    if (crew.status !== 'proposed') throw new CrewInputError('only a proposed crew can be declined');
+    if (!crew.memberIds.includes(uid) || crew.captainId === uid) throw new CrewInputError('only an invited member can decline');
+    if (crew.memberIds.length <= 2) {
+      tx.delete(crewRef(gid, cid));
+      return;
+    }
+    const without = (ids: readonly string[]) => ids.filter((id) => id !== uid);
+    tx.update(crewRef(gid, cid), {
+      memberIds: without(crew.memberIds),
+      acceptedIds: without(crew.acceptedIds),
+      backupDriverIds: without(crew.backupDriverIds),
+    });
+  });
+}
+
+/** Captain or admin: withdraw a proposal that never ran (rules deny deleting a crew with ledger history). */
+export async function withdrawCrew(gid: string, cid: string): Promise<void> {
+  await deleteDoc(crewRef(gid, cid));
+}
+
+/** Captain or admin: pause planning or resume it. Trips and the ledger stay as they are. */
+export async function setCrewStatus(gid: string, cid: string, status: Extract<Crew['status'], 'active' | 'paused'>): Promise<void> {
+  await updateDoc(crewRef(gid, cid), { status });
 }
 
 export async function updateCrew(gid: string, cid: string, patch: CrewPatch): Promise<void> {
