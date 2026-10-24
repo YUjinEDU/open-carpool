@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Car, Settings, LogOut, ChevronRight, BarChart3, History, MessageCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useApp } from '../contexts/AppContext';
-import { logout } from '../lib/authService';
+import { logout } from '../lib/legacyAuth';
 import { Ride } from '../types';
 import { getRideHistory } from '../lib/firebaseDb';
 import { ChatHistoryModal } from '../components/ChatHistoryModal';

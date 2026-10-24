@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { User, SavedAddress, Vehicle } from '../types';
 import { AddressSearch } from '../components/AddressSearch';
 import { CampusBuildingSelector } from '../components/CampusBuildingSelector';
-import { signup } from '../lib/authService';
+import { signup } from '../lib/legacyAuth';
 import { useApp } from '../contexts/AppContext';
 import { showToast } from '../components/Toast';
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, User, Route, Ride, Coordinate } from '../types';
-import { getCurrentEmployeeId } from '../lib/authService';
+import { getCurrentEmployeeId } from '../lib/legacyAuth';
 import { getUser, subscribeToActiveRoutes, getMyActiveRoute, getMyActiveRide, getRouteById, updateRouteStatus } from '../lib/firebaseDb';
 
 interface AppContextType {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { School, Hash, Lock, Eye, EyeOff, X, Car } from 'lucide-react';
 import { motion } from 'motion/react';
-import { login, resetPassword } from '../lib/authService';
+import { login, resetPassword } from '../lib/legacyAuth';
 import { useApp } from '../contexts/AppContext';
 import { getActiveRoutes } from '../lib/firebaseDb';
 
