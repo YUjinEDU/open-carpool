@@ -8,13 +8,13 @@ import { InviteShare } from '../../app/shell/InviteShare';
 import { PageBody } from '../../app/shell/PageBody';
 import { useBack } from '../../app/shell/useBack';
 import { rotateInviteCode, updateGroup, type GroupPatch } from '../../data/groups';
-import { legalNoticeKey } from '../../domain/policies';
 import type { CostMode, GroupPolicy, PlateRotation } from '../../domain/types';
 import { useAction } from '../../shared/lib/useAction';
-import { Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, IconButton, Input, Select, TopBar } from '../../shared/ui';
+import { Badge, Button, Card, CardHeader, Dialog, EmptyState, IconButton, Input, Select, TopBar } from '../../shared/ui';
 import type { Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
 import { GroupBasicsFields, type GroupBasics } from './GroupBasicsFields';
+import { LegalNotice } from './LegalNotice';
 import { COST_MODES, parseEmailDomains, PLATE_ROTATIONS } from './options';
 
 const isCostMode = (v: string): v is CostMode => COST_MODES.some((m) => m === v);
@@ -86,7 +86,7 @@ function InviteCard() {
     <Card as="section" className="flex flex-col gap-4">
       <CardHeader title={t('settings.invite')} description={t('invite.hint')} />
       <InviteShare group={group} withTestIds />
-      <Button variant="ghost" size="sm" leadingIcon={<RefreshCw />} className="self-start" onClick={() => setAsking(true)} data-testid="invite-rotate">
+      <Button variant="ghost" leadingIcon={<RefreshCw />} className="self-start" onClick={() => setAsking(true)} data-testid="invite-rotate">
         {t('invite.rotate')}
       </Button>
       <Dialog
@@ -199,9 +199,7 @@ function PolicyCard() {
             </option>
           ))}
         </Select>
-        <Banner variant="info" data-testid="settings-legal-notice">
-          {t(legalNoticeKey({ country: group.country, policy }))}
-        </Banner>
+        <LegalNotice group={{ country: group.country, policy }} data-testid="settings-legal-notice" />
         <Button type="submit" variant="secondary" loading={save.busy} loadingLabel={t('settings.saving')} className="self-start" data-testid="settings-save-policy">
           {t('common.save')}
         </Button>

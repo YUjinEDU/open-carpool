@@ -13,9 +13,9 @@ export interface StatProps extends Omit<RootProps, 'title'> {
   className?: string;
 }
 
-export function Stat({ value, label, hint, size = 'md', align = 'start', className }: StatProps) {
+export function Stat({ value, label, hint, size = 'md', align = 'start', className, ...rest }: StatProps) {
   return (
-    <div className={cx('flex min-w-0 flex-col', align === 'center' && 'items-center text-center', className)}>
+    <div className={cx('flex min-w-0 flex-col', align === 'center' && 'items-center text-center', className)} {...rest}>
       <span className={cx('tabular-nums text-ink', size === 'lg' ? 'text-numeral' : 'text-title-1')}>{value}</span>
       <span className="mt-1 text-sub text-ink-2">{label}</span>
       {hint && <span className="mt-0.5 text-caption text-ink-3">{hint}</span>}

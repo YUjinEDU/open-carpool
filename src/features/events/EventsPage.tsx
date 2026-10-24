@@ -6,7 +6,7 @@ import { useGroup } from '../../app/providers/group';
 import { createEvent, listCars, listEvents, type CreateEventInput } from '../../data/events';
 import { DEFAULT_TZ, today as todayIn } from '../../domain/dates';
 import { useLoad } from '../../shared/lib/loadable';
-import { useAction } from '../../shared/lib/useAction';
+import { describeError, useAction } from '../../shared/lib/useAction';
 import { Badge, Button, EmptyState, IconButton, Input, List, ListItem, Sheet, Skeleton, TimeField, TopBar } from '../../shared/ui';
 import { compareEvents, formatEventDate, seatsLeft } from './board';
 
@@ -34,7 +34,7 @@ export function EventsPage() {
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-4 pb-safe-nav">
         {state.status === 'loading' && <Skeleton className="h-40" />}
         {state.status === 'error' && (
-          <EmptyState icon={<AlertCircle />} title={t('dashboard.loadError')} description={state.error.message} action={<Button onClick={reload}>{t('dashboard.retry')}</Button>} />
+          <EmptyState icon={<AlertCircle />} title={t('dashboard.loadError')} description={describeError(state.error)} action={<Button onClick={reload}>{t('dashboard.retry')}</Button>} />
         )}
         {state.status === 'ready' && state.data.length === 0 && (
           <EmptyState

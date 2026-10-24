@@ -11,7 +11,7 @@ export interface ButtonProps extends PressableProps {
   size?: ButtonSize;
   /** Disables the button and swaps the leading icon for a spinner. The label stays, so the width does not jump. */
   loading?: boolean;
-  /** Accessible name for the spinner while loading, e.g. "저장 중". */
+  /** Accessible name for the spinner while loading, e.g. "저장 중". Defaults to the button text. */
   loadingLabel?: string;
   fullWidth?: boolean;
   leadingIcon?: ReactNode;
@@ -66,7 +66,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {loading ? (
-        <Spinner label={loadingLabel ?? ''} size={size === 'sm' ? 'sm' : 'md'} />
+        <Spinner label={loadingLabel ?? (typeof children === 'string' ? children : '')} size={size === 'sm' ? 'sm' : 'md'} />
       ) : (
         leadingIcon && <span className="inline-flex shrink-0" aria-hidden="true">{leadingIcon}</span>
       )}

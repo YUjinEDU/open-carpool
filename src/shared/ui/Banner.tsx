@@ -10,7 +10,7 @@ export interface BannerProps extends Omit<RootProps, 'title' | 'role'> {
   variant?: BannerVariant;
   title?: ReactNode;
   children?: ReactNode;
-  /** Usually one secondary or ghost Button sized sm. */
+  /** Usually one secondary or ghost Button (md: the action is a 44px target like every other control). */
   action?: ReactNode;
   icon?: ReactNode;
   onDismiss?: () => void;

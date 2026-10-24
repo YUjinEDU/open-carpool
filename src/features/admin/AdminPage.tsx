@@ -3,13 +3,14 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { AlertCircle, BarChart3, Check, Download } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
+import { useBack } from '../../app/shell/useBack';
 import { listTrips } from '../../data/trips';
 import type { ChurnStatus } from '../../domain/churn';
 import { DEFAULT_TZ, today as todayIn } from '../../domain/dates';
 import { moneyFeaturesEnabled } from '../../domain/policies';
 import type { Crew, Group, Member } from '../../domain/types';
 import { useLoad } from '../../shared/lib/loadable';
-import { useAction } from '../../shared/lib/useAction';
+import { describeError, useAction } from '../../shared/lib/useAction';
 import { Badge, Banner, Button, Card, CardHeader, EmptyState, List, ListItem, Select, Skeleton, Stat, TopBar, type BadgeVariant } from '../../shared/ui';
 import { useCrews } from '../crews/hooks';
 import { useMembers } from '../members/hooks';
@@ -41,9 +42,10 @@ export function AdminPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { group, isAdmin } = useGroup();
+  const back = useBack(`/g/${group.id}`);
   return (
     <>
-      <TopBar wide title={t('dashboard.title')} />
+      <TopBar wide title={t('dashboard.title')} onBack={back} backLabel={t('nav.back')} />
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pt-4 pb-safe-nav">
         {isAdmin ? (
           <Dashboard group={group} />
@@ -51,7 +53,7 @@ export function AdminPage() {
           <Banner
             variant="warn"
             title={t('dashboard.forbiddenTitle')}
-            action={<Button size="sm" variant="secondary" onClick={() => navigate(`/g/${group.id}`)}>{t('dashboard.backToGroup')}</Button>}
+            action={<Button variant="secondary" onClick={() => navigate(`/g/${group.id}`)}>{t('dashboard.backToGroup')}</Button>}
           >
             {t('dashboard.forbiddenBody')}
           </Banner>
@@ -77,7 +79,7 @@ function Dashboard({ group }: { readonly group: Group }) {
       <EmptyState
         icon={<AlertCircle />}
         title={t('dashboard.loadError')}
-        description={error?.message}
+        description={error ? describeError(error) : undefined}
         action={<Button onClick={() => { reloadMembers(); reloadTrips(); }}>{t('dashboard.retry')}</Button>}
       />
     );
@@ -174,11 +176,16 @@ function DashboardBody({ group, members, crews, today }: BodyProps) {
 }
 
 function ExportCard({ group, members, crews, today }: BodyProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const months = useMemo(() => recentMonths(today, MONTHS_OFFERED), [today]);
   const [month, setMonth] = useState(months[0] ?? today.slice(0, 7));
   const [exported, setExported] = useState<string | null>(null);
   const money = moneyFeaturesEnabled(group);
+  // "2026년 10월" / "October 2026" instead of the raw YYYY-MM value.
+  const monthLabel = useMemo(() => {
+    const format = new Intl.DateTimeFormat(i18n.language, { year: 'numeric', month: 'long', timeZone: 'UTC' });
+    return (ym: string) => format.format(new Date(`${ym}-01T00:00:00Z`));
+  }, [i18n.language]);
   const exportMonth = useCallback(async () => {
     const monthTrips = await loadCrewTrips(group.id, crews.map((c) => c.crew), monthRange(month));
     downloadText(tripsCsv({ crews: monthTrips, members, moneyEnabled: money }), csvFilename(group.name, month));
@@ -196,7 +203,7 @@ function ExportCard({ group, members, crews, today }: BodyProps) {
       <div className="mt-4 flex flex-col gap-4">
         <Select label={t('dashboard.export.month')} value={month} onChange={(e) => setMonth(e.target.value)} data-testid="admin-csv-month">
           {months.map((m) => (
-            <option key={m} value={m}>{m}</option>
+            <option key={m} value={m}>{monthLabel(m)}</option>
           ))}
         </Select>
         <Button fullWidth leadingIcon={<Download />} loading={busy} loadingLabel={t('dashboard.export.busy')} onClick={() => run()} data-testid="admin-csv">

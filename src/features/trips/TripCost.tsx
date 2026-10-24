@@ -64,7 +64,7 @@ export function TripCost({ group, trip, names, onSave }: TripCostProps) {
         value={currency}
         onChange={(e) => setCurrency(e.target.value)}
       />
-      <Button type="submit" variant="secondary" size="sm" className="col-span-2 justify-self-start" data-testid="trip-cost-save">
+      <Button type="submit" variant="secondary" className="col-span-2 justify-self-start" data-testid="trip-cost-save">
         {t('trip.cost.save')}
       </Button>
     </form>

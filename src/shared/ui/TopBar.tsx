@@ -26,17 +26,20 @@ export interface TopBarProps {
 }
 
 export function TopBar({ title, onBack, backLabel = '', onTitleClick, titleActionLabel, leading, trailing, sticky = true, transparent = false, wide = false, className }: TopBarProps) {
+  // The switcher keeps the screen name as its accessible name ("다온테크 · 그룹 바꾸기"), inside the page's h1.
   const titleNode = onTitleClick ? (
-    <button
-      type="button"
-      onClick={onTitleClick}
-      aria-haspopup="dialog"
-      aria-label={titleActionLabel}
-      className="inline-flex h-11 max-w-full items-center gap-1 rounded-control px-2 text-title-3 text-ink hover:bg-surface-2 active:bg-surface-3"
-    >
-      <span className="truncate">{title}</span>
-      <ChevronDown aria-hidden="true" className="size-5 shrink-0 text-ink-3" />
-    </button>
+    <h1 className="min-w-0 text-title-3">
+      <button
+        type="button"
+        onClick={onTitleClick}
+        aria-haspopup="dialog"
+        className="inline-flex h-11 max-w-full items-center gap-1 rounded-control px-2 text-title-3 text-ink hover:bg-surface-2 active:bg-surface-3"
+      >
+        <span className="truncate">{title}</span>
+        {titleActionLabel && <span className="sr-only">· {titleActionLabel}</span>}
+        <ChevronDown aria-hidden="true" className="size-5 shrink-0 text-ink-3" />
+      </button>
+    </h1>
   ) : (
     <h1 className="truncate px-2 text-title-3 text-ink">{title}</h1>
   );

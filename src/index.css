@@ -53,13 +53,17 @@
   --success-wash: #D5ECDF;
   --warn-ink: #8A4B00;
   --warn-wash: #FCEFD6;
-  --warn-bar: #E0A23A;
+  --warn-bar: #B8791A; /* 3.1:1 on surface-3: the negative ledger side stays legible as a graphic */
   --danger-ink: #B3261E;
   --danger-wash: #FBE4E2;
   --danger-solid: #C62D26;
   --danger-hover: #A82620;
   --info-ink: #2B5FB8;
   --info-wash: #E1EAF8;
+
+  /* Glyphs on the toast (always ink-coloured): both pairs >= 4.5:1 on --ink. */
+  --on-ink-success: var(--brand-300);
+  --on-ink-danger: #F28B84;
 
   --focus: var(--brand-500);
 
@@ -109,6 +113,9 @@
   --danger-hover: #E2625C;
   --info-ink: #8FB4F2;
   --info-wash: #17273D;
+
+  --on-ink-success: var(--brand-600);
+  --on-ink-danger: #B3261E;
 
   --focus: var(--brand-300);
 
@@ -168,6 +175,8 @@
   --color-danger-hover: var(--danger-hover);
   --color-info-ink: var(--info-ink);
   --color-info-wash: var(--info-wash);
+  --color-on-ink-success: var(--on-ink-success);
+  --color-on-ink-danger: var(--on-ink-danger);
 
   --color-focus: var(--focus);
 

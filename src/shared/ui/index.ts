@@ -55,5 +55,5 @@ export { ShareButtons, copyText } from './ShareButtons';
 export type { ShareButtonsProps, ShareLabels } from './ShareButtons';
 export { QrCode } from './QrCode';
 export type { QrCodeProps } from './QrCode';
-export { ToastContainer, showToast } from './Toast';
-export type { ToastContainerProps, ToastKind } from './Toast';
+export { ToastContainer, dismissToast, showToast } from './Toast';
+export type { ToastAction, ToastContainerProps, ToastKind, ToastOptions } from './Toast';

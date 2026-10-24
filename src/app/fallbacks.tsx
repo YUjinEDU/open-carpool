@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, isRouteErrorResponse, useRouteError } from 'react-router';
 import { AlertCircle, SearchX } from 'lucide-react';
+import { describeError } from '../shared/lib/useAction';
 import { Banner, Button, EmptyState, Skeleton } from '../shared/ui';
 import { PageBody } from './shell/PageBody';
 
@@ -23,7 +24,7 @@ export interface ErrorBannerProps {
   readonly className?: string;
 }
 
-/** Load failure next to the thing that failed, with the cause and a retry. */
+/** Load failure next to the thing that failed, with the cause (a plain sentence, never SDK text) and a retry. */
 export function ErrorBanner({ error, onRetry, title, className }: ErrorBannerProps) {
   const { t } = useTranslation();
   return (
@@ -33,13 +34,13 @@ export function ErrorBanner({ error, onRetry, title, className }: ErrorBannerPro
       className={className}
       action={
         onRetry && (
-          <Button size="sm" variant="secondary" onClick={onRetry}>
+          <Button variant="secondary" onClick={onRetry}>
             {t('common.retry')}
           </Button>
         )
       }
     >
-      {error.message}
+      {describeError(error)}
     </Banner>
   );
 }
@@ -57,7 +58,7 @@ export function NotFoundPage() {
 export function RouteErrorPage() {
   const { t } = useTranslation();
   const error = useRouteError();
-  const message = isRouteErrorResponse(error) ? error.statusText : error instanceof Error ? error.message : String(error);
+  const message = isRouteErrorResponse(error) ? error.statusText : describeError(error);
   return (
     <PageBody className="justify-center pt-16" role="alert">
       <EmptyState

@@ -570,7 +570,7 @@ export function Gallery() {
           </PhoneFrame>
         </div>
       </main>
-      <ToastContainer aboveNav={false} />
+      <ToastContainer aboveNav={false} dismissLabel="닫기" />
     </div>
   );
 }

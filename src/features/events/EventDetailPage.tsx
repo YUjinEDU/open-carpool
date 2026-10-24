@@ -6,7 +6,7 @@ import { useGroup } from '../../app/providers/group';
 import { joinCar, leaveCar, listCars, listEvents, upsertMyCar } from '../../data/events';
 import type { EventCar } from '../../domain/types';
 import { useLoad } from '../../shared/lib/loadable';
-import { useAction } from '../../shared/lib/useAction';
+import { describeError, useAction } from '../../shared/lib/useAction';
 import { Avatar, AvatarStack, Badge, Banner, Button, Card, CardHeader, EmptyState, Input, List, ListItem, Sheet, Skeleton, TextArea, TopBar } from '../../shared/ui';
 import { useMembers } from '../members/hooks';
 import { carSeatsLeft, formatEventDate, seatsLeft } from './board';
@@ -37,7 +37,7 @@ export function EventDetailPage() {
   const body = (() => {
     if (state.status === 'loading') return <Skeleton className="h-48" />;
     if (state.status === 'error') {
-      return <EmptyState icon={<AlertCircle />} title={t('dashboard.loadError')} description={state.error.message} action={<Button onClick={reload}>{t('dashboard.retry')}</Button>} />;
+      return <EmptyState icon={<AlertCircle />} title={t('dashboard.loadError')} description={describeError(state.error)} action={<Button onClick={reload}>{t('dashboard.retry')}</Button>} />;
     }
     const { event, cars } = state.data;
     if (!event) return <EmptyState icon={<AlertCircle />} title={t('rideboard.detail.notFound')} action={<Button onClick={back}>{t('rideboard.title')}</Button>} />;
@@ -50,7 +50,7 @@ export function EventDetailPage() {
         return (
           <>
             <Badge variant="success">{t('rideboard.detail.riding')}</Badge>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => leaveCar(group.id, eid, car.driverId, me.uid))} data-testid={`car-leave-${car.driverId}`}>
+            <Button variant="ghost" disabled={busy} onClick={() => run(() => leaveCar(group.id, eid, car.driverId, me.uid))} data-testid={`car-leave-${car.driverId}`}>
               {t('rideboard.detail.leave')}
             </Button>
           </>
@@ -59,7 +59,7 @@ export function EventDetailPage() {
       if (carSeatsLeft(car) === 0) return <Badge>{t('rideboard.full')}</Badge>;
       if (ridingIn !== null || myCar !== null) return null;
       return (
-        <Button size="sm" disabled={busy} onClick={() => run(() => joinCar(group.id, eid, car.driverId, me.uid))} data-testid={`car-join-${car.driverId}`}>
+        <Button disabled={busy} onClick={() => run(() => joinCar(group.id, eid, car.driverId, me.uid))} data-testid={`car-join-${car.driverId}`}>
           {t('rideboard.detail.ride')}
         </Button>
       );
