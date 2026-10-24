@@ -1,26 +1,394 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-headline: "Manrope", sans-serif;
-  
-  --color-primary: #002853;
-  --color-primary-container: #003E7A;
-  --color-surface: #f8f9fa;
-  --color-on-surface: #191c1d;
-  --color-surface-container-low: #f3f4f5;
-  --color-surface-container-lowest: #ffffff;
-  --color-on-surface-variant: #424750;
-  --color-outline-variant: #c3c6d1;
+/*
+  open-carpool design tokens. The contract lives in docs/DESIGN.md; every value here is named there.
+  Layering:
+    1. Semantic custom properties on :root (light) and [data-theme="dark"] (opt-in dark).
+    2. @theme inline exposes them as Tailwind utilities (bg-surface, text-ink-2, border-line, bg-accent ...).
+       "inline" keeps the var() reference in the utility, so a subtree can re-tint itself
+       (see .tone-inverse) and the opt-in dark theme works without duplicating utilities.
+    3. Static scale tokens (type, radius, shadow, easing, animation) in a plain @theme block.
+    4. Base styles, safe-area utilities, legacy aliases for src/screens (remove with them).
+*/
+
+/* ---------- 1. Semantic tokens ---------- */
+:root {
+  color-scheme: light;
+
+  --canvas: #F6F7F5;
+  --surface: #FFFFFF;
+  --surface-2: #EEF0ED;
+  --surface-3: #E3E6E2;
+
+  --ink: #151916;
+  --ink-2: #4B514D;
+  --ink-3: #636A65;
+  --ink-inverse: #F6F7F5;
+
+  --line: #E1E5E1;
+  --line-strong: #C6CCC7;
+  --scrim: rgb(21 25 22 / 0.48);
+
+  --brand-50: #EDF6F1;
+  --brand-100: #D5ECDF;
+  --brand-200: #AEDAC3;
+  --brand-300: #7EC2A1;
+  --brand-400: #4EA57F;
+  --brand-500: #2E8A63;
+  --brand-600: #1F7352;
+  --brand-700: #1A5F44;
+  --brand-800: #174C38;
+  --brand-900: #123E2E;
+  --brand-950: #0A271C;
+
+  --accent: var(--brand-600);
+  --accent-hover: var(--brand-700);
+  --accent-ink: var(--brand-700);
+  --accent-wash: var(--brand-50);
+  --accent-wash-strong: var(--brand-100);
+  --on-accent: #FFFFFF;
+
+  --success-ink: #1F7352;
+  --success-wash: #D5ECDF;
+  --warn-ink: #8A4B00;
+  --warn-wash: #FCEFD6;
+  --warn-bar: #E0A23A;
+  --danger-ink: #B3261E;
+  --danger-wash: #FBE4E2;
+  --danger-solid: #C62D26;
+  --danger-hover: #A82620;
+  --info-ink: #2B5FB8;
+  --info-wash: #E1EAF8;
+
+  --focus: var(--brand-500);
+
+  /* Identity tints: avatars only. Muted so a crew of five never reads as a rainbow. */
+  --tint-1-bg: #DCEBE2; --tint-1-ink: #1F4D3A;
+  --tint-2-bg: #F0E6D2; --tint-2-ink: #5B4420;
+  --tint-3-bg: #DCE7F3; --tint-3-ink: #27476B;
+  --tint-4-bg: #E9DFEE; --tint-4-ink: #553462;
+  --tint-5-bg: #F2E0DA; --tint-5-ink: #6B3A2A;
+
+  --nav-height: 3.5rem;
+  --topbar-height: 3.5rem;
 }
 
-@layer base {
-  body {
-    @apply bg-surface text-on-surface font-sans antialiased;
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --canvas: #111413;
+  --surface: #191D1B;
+  --surface-2: #222725;
+  --surface-3: #2C322F;
+
+  --ink: #EEF1EE;
+  --ink-2: #B5BBB7;
+  --ink-3: #8C938E;
+  --ink-inverse: #151916;
+
+  --line: #2C322F;
+  --line-strong: #3B423E;
+  --scrim: rgb(0 0 0 / 0.6);
+
+  --accent: var(--brand-400);
+  --accent-hover: var(--brand-300);
+  --accent-ink: var(--brand-300);
+  --accent-wash: #17352A;
+  --accent-wash-strong: #1D4536;
+  --on-accent: var(--brand-950);
+
+  --success-ink: #8CD1B0;
+  --success-wash: #17352A;
+  --warn-ink: #F2B65A;
+  --warn-wash: #3A2A10;
+  --warn-bar: #E0A23A;
+  --danger-ink: #F28B84;
+  --danger-wash: #3E1C1A;
+  --danger-solid: #D8463F;
+  --danger-hover: #E2625C;
+  --info-ink: #8FB4F2;
+  --info-wash: #17273D;
+
+  --focus: var(--brand-300);
+
+  --tint-1-bg: #1F3A2E; --tint-1-ink: #B9DCC8;
+  --tint-2-bg: #3D3222; --tint-2-ink: #E3CFA6;
+  --tint-3-bg: #223447; --tint-3-ink: #B6CBE6;
+  --tint-4-bg: #35283C; --tint-4-ink: #D7C3E0;
+  --tint-5-bg: #3F2A24; --tint-5-ink: #E6C4B8;
+}
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant data-closing (&[data-closing]);
+
+/* ---------- 2. Semantic utilities ---------- */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-scrim: var(--scrim);
+
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+  --color-brand-950: var(--brand-950);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-accent-wash-strong: var(--accent-wash-strong);
+  --color-on-accent: var(--on-accent);
+
+  --color-success-ink: var(--success-ink);
+  --color-success-wash: var(--success-wash);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-wash: var(--warn-wash);
+  --color-warn-bar: var(--warn-bar);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-wash: var(--danger-wash);
+  --color-danger-solid: var(--danger-solid);
+  --color-danger-hover: var(--danger-hover);
+  --color-info-ink: var(--info-ink);
+  --color-info-wash: var(--info-wash);
+
+  --color-focus: var(--focus);
+
+  /* Legacy aliases used by src/screens and src/components. Delete together with them. */
+  --color-primary: var(--brand-700);
+  --color-primary-container: var(--brand-600);
+  --color-on-surface: var(--ink);
+  --color-on-surface-variant: var(--ink-2);
+  --color-surface-container-low: var(--surface-2);
+  --color-surface-container-lowest: var(--surface);
+  --color-outline-variant: var(--line-strong);
+}
+
+/* ---------- 3. Static scale tokens ---------- */
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-headline: var(--font-sans); /* legacy alias */
+
+  /* Type scale (mobile-first; body is 17px to match the platform reading size on phones) */
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.2;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 700;
+  --text-title-1: 1.5rem;
+  --text-title-1--line-height: 1.25;
+  --text-title-1--letter-spacing: -0.015em;
+  --text-title-1--font-weight: 700;
+  --text-title-2: 1.25rem;
+  --text-title-2--line-height: 1.3;
+  --text-title-2--letter-spacing: -0.01em;
+  --text-title-2--font-weight: 700;
+  --text-title-3: 1.0625rem;
+  --text-title-3--line-height: 1.4;
+  --text-title-3--font-weight: 600;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.55;
+  --text-sub: 0.9375rem;
+  --text-sub--line-height: 1.5;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.3;
+  --text-label--letter-spacing: 0.01em;
+  --text-label--font-weight: 600;
+  --text-numeral: 2.25rem;
+  --text-numeral--line-height: 1.1;
+  --text-numeral--letter-spacing: -0.02em;
+  --text-numeral--font-weight: 700;
+
+  /* Shape: controls 12, cards 16, sheets 24, chips/pills full */
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-sheet: 1.5rem;
+  --radius-chip: 9999px;
+
+  /* Depth: cards use a hairline; shadows only on floating layers, tinted to the ink hue */
+  --shadow-float: 0 8px 24px rgb(21 25 22 / 0.10), 0 2px 6px rgb(21 25 22 / 0.06);
+  --shadow-sheet: 0 -8px 32px rgb(21 25 22 / 0.14);
+  --shadow-toast: 0 6px 20px rgb(21 25 22 / 0.18);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-sheet-in: sheet-in 220ms var(--ease-out-quint);
+  --animate-dialog-in: dialog-in 180ms var(--ease-out-quint);
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-toast-in: toast-in 200ms var(--ease-out-quint);
+  --animate-sheet-out: sheet-out 180ms ease-in forwards;
+  --animate-dialog-out: dialog-out 140ms ease-in forwards;
+  --animate-skeleton: skeleton 1.4s ease-in-out infinite;
+  --animate-spin-slow: spin 0.9s linear infinite;
+
+  @keyframes sheet-in {
+    from { transform: translateY(16px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes dialog-in {
+    from { transform: scale(0.97); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes toast-in {
+    from { transform: translateY(8px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes sheet-out {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(16px); opacity: 0; }
+  }
+  @keyframes dialog-out {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(0.97); opacity: 0; }
+  }
+  @keyframes skeleton {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
   }
 }
 
+/* Reduced motion: positional motion becomes a cross-fade; fades and progress stay. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes sheet-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes dialog-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes toast-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sheet-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes dialog-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes skeleton { 0%, 100% { opacity: 1; } }
+}
+
+/* ---------- 4. Base ---------- */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-feature-settings: "calt";
+    background-color: var(--canvas);
+  }
+  body {
+    min-height: 100dvh;
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Korean wraps between words, never inside one; long tokens still break instead of overflowing. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  :lang(ko), :lang(ja), :lang(zh) {
+    word-break: keep-all;
+  }
+  button, [role="button"], a, input, select, textarea, label {
+    touch-action: manipulation;
+  }
+  button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background-color: var(--brand-100);
+    color: var(--brand-950);
+  }
+  dialog::backdrop {
+    background-color: var(--scrim);
+  }
+  [hidden] {
+    display: none !important;
+  }
+}
+
+/* ---------- 5. Utilities ---------- */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+/* Page bodies that sit above the BottomNav */
+@utility pb-safe-nav {
+  padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+/* Bounded scroll shell: header / scrolling body / footer */
+@utility scroll-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  max-block-size: 100dvh;
+}
+@utility scroll-body {
+  min-block-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* Re-tints a subtree (the deep green "evening card"): children keep using the same semantic utilities. */
+@utility tone-inverse {
+  --surface: var(--brand-900);
+  --surface-2: var(--brand-800);
+  --surface-3: var(--brand-700);
+  --ink: #FFFFFF;
+  --ink-2: var(--brand-100);
+  --ink-3: var(--brand-200);
+  --line: rgb(255 255 255 / 0.14);
+  --line-strong: rgb(255 255 255 / 0.28);
+  --accent: #FFFFFF;
+  --accent-hover: var(--brand-50);
+  --accent-ink: var(--brand-100);
+  --accent-wash: rgb(255 255 255 / 0.12);
+  --accent-wash-strong: rgb(255 255 255 / 0.2);
+  --on-accent: var(--brand-900);
+  --focus: #FFFFFF;
+  color-scheme: dark;
+  background-color: var(--brand-900);
+  background-image: linear-gradient(160deg, var(--brand-800) 0%, var(--brand-900) 55%, var(--brand-950) 100%);
+  color: #FFFFFF;
+}
+/* Sheet footers: their own bottom padding plus the home indicator. */
+@utility pb-safe-offset {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+@utility avatar-tint-1 { background-color: var(--tint-1-bg); color: var(--tint-1-ink); }
+@utility avatar-tint-2 { background-color: var(--tint-2-bg); color: var(--tint-2-ink); }
+@utility avatar-tint-3 { background-color: var(--tint-3-bg); color: var(--tint-3-ink); }
+@utility avatar-tint-4 { background-color: var(--tint-4-bg); color: var(--tint-4-ink); }
+@utility avatar-tint-5 { background-color: var(--tint-5-bg); color: var(--tint-5-ink); }
+@utility hairline-top {
+  box-shadow: inset 0 1px 0 var(--line);
+}
+@utility hairline-bottom {
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+/* ---------- 6. Legacy classes kept for src/screens (delete with them) ---------- */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -28,21 +396,18 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .glass-panel {
-  @apply bg-surface-container-lowest/80 backdrop-blur-xl;
+  background-color: color-mix(in srgb, var(--surface) 80%, transparent);
+  backdrop-filter: blur(24px);
 }
-
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-
 @keyframes map-ripple {
   0% { transform: scale(1); opacity: 0.4; }
   70% { transform: scale(1.1); opacity: 0.1; }
   100% { transform: scale(1); opacity: 0.4; }
 }
-
 .map-pulse {
   animation: map-ripple 3s infinite ease-out;
 }
