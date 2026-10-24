@@ -127,7 +127,8 @@ service cloud.firestore {
         && isoDate(d.date)
         && d.leg in ['out', 'back']
         && optId(d.driverId)
-        && list(d.riderIds, 6)
+        // A driven trip seats at most five riders (k <= 6 in the ledger); an open trip may hold the whole crew.
+        && list(d.riderIds, d.driverId == null ? 6 : 5)
         && list(d.absentIds, 6)
         && d.status in ['planned', 'needs_driver', 'done', 'cancelled']
         && d.applied is bool
@@ -181,8 +182,9 @@ service cloud.firestore {
         && riderPaid(t, 0, share) && riderPaid(t, 1, share) && riderPaid(t, 2, share)
         && riderPaid(t, 3, share) && riderPaid(t, 4, share)
         && crew.lastDroveOn.diff(resource.data.lastDroveOn).affectedKeys().hasOnly([t.driverId])
-        && crew.lastDroveOn[t.driverId] == t.date;
+        && crew.lastDroveOn[t.driverId] == laterDate(resource.data.lastDroveOn.get(t.driverId, ''), t.date);
     }
+    function laterDate(a, b) { return a > b ? a : b; }
 
     // Each score of a new crew is 0 (at most 6 members, see validCrew).
     function scoreZero(d, i) { return d.memberIds.size() <= i || d.scores.get(d.memberIds[i], 0) == 0; }

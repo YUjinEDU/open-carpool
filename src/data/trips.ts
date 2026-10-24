@@ -138,10 +138,13 @@ export async function completeTrip(
       driverId: completion.driverId,
       riderIds,
     });
+    // A trip settled late must not move lastDroveOn backwards (pickDriver tie-break).
+    const droveBefore: string | undefined = crew.lastDroveOn[completion.driverId];
+    const droveOn = droveBefore !== undefined && droveBefore > trip.date ? droveBefore : trip.date;
     // ledgerTripId binds this ledger move to the trip settled in the same transaction (firestore.rules).
     tx.update(crewRef(gid, cid), {
       scores,
-      lastDroveOn: { ...crew.lastDroveOn, [completion.driverId]: trip.date },
+      lastDroveOn: { ...crew.lastDroveOn, [completion.driverId]: droveOn },
       ledgerTripId: tripId,
     });
     return scores;

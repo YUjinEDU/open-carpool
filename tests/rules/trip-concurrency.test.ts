@@ -158,4 +158,20 @@ describe('completion', () => {
     expect(scores).toEqual({ [uids.ann]: 30, [uids.ben]: -30 });
     expect((await tripOn(gid, cid, id))?.riderIds).toEqual([uids.ben]);
   });
+
+  it('keeps the later lastDroveOn when an older trip is completed after a newer one', async () => {
+    const { gid, cid } = await activeCrew();
+    for (const date of [MON, TUE]) {
+      await setDoc(doc(db, 'groups', gid, 'crews', cid, 'trips', `${date}_out`), {
+        date, leg: 'out', driverId: uids.ann, riderIds: [uids.ben], absentIds: [],
+        status: 'planned', applied: false, completedBy: null, completedAt: null, cost: null,
+      });
+    }
+    await trips.completeTrip(gid, cid, `${TUE}_out`, { driverId: uids.ann, riderIds: [uids.ben] }, uids.ann);
+
+    await trips.completeTrip(gid, cid, `${MON}_out`, { driverId: uids.ann, riderIds: [uids.ben] }, uids.ann);
+
+    const crew = (await crews.listCrews(gid)).find((c) => c.id === cid);
+    expect(crew?.lastDroveOn[uids.ann]).toBe(TUE);
+  });
 });

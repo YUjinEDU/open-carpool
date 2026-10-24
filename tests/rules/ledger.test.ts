@@ -58,6 +58,12 @@ describe('ledger binding', () => {
     );
   });
 
+  it('keeps the later lastDroveOn when an older trip is settled late', async () => {
+    await env.withSecurityRulesDisabled((ctx) => ctx.firestore().doc(crewPath()).update({ lastDroveOn: { alice: '2026-10-27' } }));
+    await assertFails(settle('alice', { scores: { alice: 30, bob: -30 }, lastDroveOn: { alice: '2026-10-26' }, ledgerTripId: TRIP }));
+    await assertSucceeds(settle('alice', { scores: { alice: 30, bob: -30 }, ledgerTripId: TRIP }));
+  });
+
   it('settles a four-person trip with exact Fagin-Williams shares', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
@@ -86,6 +92,13 @@ describe('trip creation', () => {
     await assertFails(create('bob', '2026-10-30_out', trip('2026-10-30', { ...DONE, completedBy: 'bob' })));
     await assertFails(create('bob', '2026-10-30_out', trip('2026-10-30', { status: 'done' })));
     await assertFails(create('bob', '2026-10-30_out', trip('2026-10-30', { completedBy: 'bob' })));
+  });
+
+  it('caps a driven trip at five riders; an open trip may hold the whole crew', async () => {
+    const six = ['b', 'c', 'd', 'e', 'f', 'g'];
+    await assertFails(create('bob', '2026-10-30_out', trip('2026-10-30', { riderIds: six })));
+    await assertSucceeds(create('bob', '2026-10-30_out', trip('2026-10-30', { riderIds: six.slice(0, 5) })));
+    await assertSucceeds(create('bob', '2026-10-30_back', trip('2026-10-30', { leg: 'back', driverId: null, status: 'needs_driver', riderIds: six })));
   });
 
   it('denies a trip whose id does not match its date and leg', async () => {

@@ -45,7 +45,14 @@ export function useCrewPlan(crew: Crew, members: readonly Member[]): Loadable<Tr
         tz: GROUP_TZ,
         policy: group.policy,
       };
-      const writes = plannedWrites(plan);
+      let writes: Trip[];
+      try {
+        writes = plannedWrites(plan);
+      } catch (e: unknown) {
+        // UI boundary: a planning bug must surface instead of silently stopping the plan.
+        showToast(describeError(e), 'error');
+        return;
+      }
       const key = JSON.stringify(writes);
       if (writes.length === 0 || key === lastWrite.current) return;
       lastWrite.current = key;
