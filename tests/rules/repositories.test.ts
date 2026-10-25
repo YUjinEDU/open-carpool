@@ -8,7 +8,7 @@ vi.stubEnv('VITE_USE_FIREBASE_EMULATOR', 'true');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', '');
 
 const { auth, db } = await import('../../src/firebase');
-const { doc, setDoc } = await import('firebase/firestore');
+const { deleteDoc, doc, setDoc, updateDoc } = await import('firebase/firestore');
 const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } = await import('firebase/auth');
 const { ensureUserProfile } = await import('../../src/features/auth/authService');
 const groups = await import('../../src/data/groups');
@@ -164,5 +164,39 @@ describe('repositories under security rules', () => {
     await become('ann');
     const { id: _id, ...fields } = group;
     await expect(setDoc(doc(db, 'groups', group.id), { ...fields, ownerId: ann })).rejects.toThrow();
+  });
+
+  async function groupWithMember(label: string) {
+    const ann = await become('ann');
+    const group = await groups.createGroup(
+      {
+        name: `${label} ${run}`, type: 'club', country: 'KR', locale: 'ko', allowedEmailDomains: [], destination: null,
+        policy: { costMode: 'rotation', absenceCutoffHour: 21, plateRotation: 'none' },
+      },
+      { uid: ann, displayName: 'Ann' },
+    );
+    const ben = await become('ben');
+    await groups.joinGroup(group.inviteCode, { uid: ben, displayName: 'Ben' });
+    await become('ann');
+    return { ann, ben, group };
+  }
+
+  it('deletes a group whose invite code was rotated after the caller loaded it (V-01)', async () => {
+    const { ann, group } = await groupWithMember('Rotated');
+    const newCode = await groups.rotateInviteCode(group.id, ann);
+    await groups.deleteGroup(group, ann); // `group` still carries the old code
+    expect(await groups.readGroup(group.id)).toMatchObject({ deleted: true });
+    expect(await groups.lookupInvite(newCode)).toBeNull();
+  });
+
+  it('finishes a delete on retry after a run that stopped before the last batch (V-01)', async () => {
+    const { ann, ben, group } = await groupWithMember('Retry');
+    // What a run leaves when every batch but the last committed: flagged, other members and invite gone.
+    await updateDoc(doc(db, 'groups', group.id), { deleting: true });
+    await deleteDoc(doc(db, 'groups', group.id, 'members', ben));
+    await deleteDoc(doc(db, 'inviteCodes', group.inviteCode));
+    await groups.deleteGroup(group, ann);
+    expect(await groups.readGroup(group.id)).toMatchObject({ deleted: true });
+    expect(await members.getMember(group.id, ann)).toBeNull();
   });
 });

@@ -174,15 +174,21 @@ const DELETE_BATCH_SIZE = 400;
  * under it), delete every crew (and its trips), event (and its cars), the other members and the invite code
  * in batches, then the owner's own membership together with turning the group doc into a tombstone. The
  * owner's membership goes last because the rules check it for every delete. A run on a group that is
- * already deleting resumes; a run on a tombstone does nothing.
+ * already deleting resumes, skipping what an earlier run deleted (the invite code is read from the stored
+ * group, never the caller's copy, which a rotation may have outdated); a run on a tombstone does nothing.
  */
-export async function deleteGroup(group: Pick<Group, 'id' | 'inviteCode'>, ownerUid: string): Promise<void> {
+export async function deleteGroup(group: Pick<Group, 'id'>, ownerUid: string): Promise<void> {
   const gid = group.id;
   const current = await readGroup(gid);
   if (current === null || 'deleted' in current) return;
   if (current.deleting !== true) await updateDoc(groupRef(gid), { deleting: true });
   const list = (name: string) => getDocs(collection(db, 'groups', gid, name));
-  const [crews, events, members] = await Promise.all([list('crews'), list('events'), list('members')]);
+  const [crews, events, members, invite] = await Promise.all([
+    list('crews'),
+    list('events'),
+    list('members'),
+    getDoc(inviteRef(current.inviteCode)),
+  ]);
   const children = await Promise.all([
     ...crews.docs.map((d) => getDocs(collection(d.ref, 'trips'))),
     ...events.docs.map((d) => getDocs(collection(d.ref, 'cars'))),
@@ -192,7 +198,7 @@ export async function deleteGroup(group: Pick<Group, 'id' | 'inviteCode'>, owner
     ...crews.docs.map((d) => d.ref),
     ...events.docs.map((d) => d.ref),
     ...members.docs.filter((d) => d.id !== ownerUid).map((d) => d.ref),
-    inviteRef(group.inviteCode),
+    ...(invite.exists() && invite.data().groupId === gid ? [invite.ref] : []),
   ];
   for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
     const batch = writeBatch(db);
