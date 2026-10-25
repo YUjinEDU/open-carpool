@@ -206,7 +206,9 @@ async function main(): Promise<void> {
       const lines = text.split('\r\n');
       if (!bom) throw new Error('CSV has no UTF-8 BOM');
       if (lines[0] !== CSV_HEADER) throw new Error(`unexpected header: ${lines[0]}`);
-      const row = lines.find((l) => l.startsWith(`${today},out,Morning run,Alice,Bob,,done,Alice,`));
+      // Leg and status columns carry the screen's words (trip.leg.out / trip.status.done), not the stored enums.
+      const [legOut, done] = (await isKo(a)) ? ['출발', '완료'] : ['Leave', 'Done'];
+      const row = lines.find((l) => l.startsWith(`${today},${legOut},Morning run,Alice,Bob,,${done},Alice,`));
       if (!row) throw new Error(`completed trip row missing: ${text}`);
       const expectedName = `open-carpool-Slice-Co-${today.slice(0, 7)}.csv`;
       if (name !== expectedName) throw new Error(`file name ${name}, expected ${expectedName}`);

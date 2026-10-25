@@ -4,7 +4,6 @@
     "forbiddenTitle": "You cannot view this page",
     "forbiddenBody": "Only group admins can see the dashboard.",
     "backToGroup": "Go to group",
-    "window": "Last 30 days",
     "stats": {
       "participation": "Participation",
       "trips": "Trips",
@@ -22,7 +21,6 @@
     "none": "-",
     "footnote": "Estimate: for every trip we add the straight-line distance from each rider's area to the group destination × {{factor}}; CO2 uses {{co2}} kg per km.",
     "crewsTitle": "Crews",
-    "crewsDescription": "Trips and ledger spread over the last 30 days",
     "crewsEmpty": "No active crews yet",
     "crewLine": "{{trips}} trips · ledger spread {{spread}} rides",
     "churn": {
@@ -34,9 +32,6 @@
     "emptyHint": "Trips show up here once crews mark them done.",
     "export": {
       "title": "Export",
-      "description": "Download every crew's trips for the chosen month as CSV. Columns: date, leg, crew, driver, riders, absent, status, completed by, completed at{{cost}}.",
-      "costColumns": ", cost, currency",
-      "month": "Month",
       "button": "Export CSV",
       "busy": "Exporting",
       "done": "Downloaded"
@@ -93,5 +88,15 @@
     "needsPlate": "Add your plate's last digit in your profile to find partners.",
     "empty": "No nearby partner with an overlapping schedule yet.",
     "plates": "Plates ending {{a}} · {{b}}"
+  },
+  "ux2": {
+    "dashboard": {
+      "period": "Period",
+      "statsTitle": "Trip stats",
+      "statsDescription": "Trips in {{month}}",
+      "crewsDescription": "Trips in {{month}} and ledger spread",
+      "exportDescription": "Download every crew's trips in {{month}} as CSV. Columns: date, leg, crew, driver, riders, absent, status, completed by, completed at{{cost}}.",
+      "exportCostColumns": ", cost, currency"
+    }
   }
 }

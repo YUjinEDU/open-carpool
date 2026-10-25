@@ -4,7 +4,6 @@
     "forbiddenTitle": "볼 수 없는 페이지예요",
     "forbiddenBody": "그룹 관리자만 대시보드를 볼 수 있어요.",
     "backToGroup": "그룹으로 가기",
-    "window": "최근 30일",
     "stats": {
       "participation": "참여율",
       "trips": "운행 수",
@@ -22,7 +21,6 @@
     "none": "-",
     "footnote": "추정값: 운행마다 탑승자 동네에서 그룹 목적지까지의 직선거리 × {{factor}}를 더했고, CO2는 km당 {{co2}}kg로 계산했어요.",
     "crewsTitle": "크루",
-    "crewsDescription": "최근 30일 운행과 장부 차이",
     "crewsEmpty": "아직 운영 중인 크루가 없어요",
     "crewLine": "운행 {{trips}}회 · 장부 차이 {{spread}}회",
     "churn": {
@@ -34,9 +32,6 @@
     "emptyHint": "크루가 운행을 완료하면 여기에 쌓여요.",
     "export": {
       "title": "내보내기",
-      "description": "선택한 달의 모든 크루 운행을 CSV로 받아요. 열: 날짜, 구간, 크루, 운전자, 탑승자, 결석, 상태, 완료자, 완료 시각{{cost}}.",
-      "costColumns": ", 비용, 통화",
-      "month": "월",
       "button": "CSV 내보내기",
       "busy": "내보내는 중",
       "done": "내려받았어요"
@@ -93,5 +88,15 @@
     "needsPlate": "프로필에 차량 끝번호를 적으면 짝을 찾아 드려요.",
     "empty": "가까이 살고 일정이 겹치는 짝을 아직 못 찾았어요.",
     "plates": "끝번호 {{a}} · {{b}}"
+  },
+  "ux2": {
+    "dashboard": {
+      "period": "기간",
+      "statsTitle": "운행 통계",
+      "statsDescription": "{{month}} 운행 기준",
+      "crewsDescription": "{{month}} 운행과 장부 차이",
+      "exportDescription": "{{month}} 모든 크루 운행을 CSV로 받아요. 열: 날짜, 구간, 크루, 운전자, 탑승자, 결석, 상태, 완료자, 완료 시각{{cost}}.",
+      "exportCostColumns": ", 비용, 통화"
+    }
   }
 }
