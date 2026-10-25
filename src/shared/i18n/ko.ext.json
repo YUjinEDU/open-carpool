@@ -97,6 +97,12 @@
       "crewsDescription": "{{month}} 운행과 장부 차이",
       "exportDescription": "{{month}} 모든 크루 운행을 CSV로 받아요. 열: 날짜, 구간, 크루, 운전자, 탑승자, 결석, 상태, 완료자, 완료 시각{{cost}}.",
       "exportCostColumns": ", 비용, 통화"
+    },
+    "notMember": {
+      "screen": "그룹 참여",
+      "title": "이 그룹의 벤버가 아니에요",
+      "hint": "초대 링크로 들어오거나 초대 코드를 입력해 주세요.",
+      "myGroups": "내 그룹으로 가기"
     }
   }
 }

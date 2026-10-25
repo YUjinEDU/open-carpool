@@ -97,6 +97,12 @@
       "crewsDescription": "Trips in {{month}} and ledger spread",
       "exportDescription": "Download every crew's trips in {{month}} as CSV. Columns: date, leg, crew, driver, riders, absent, status, completed by, completed at{{cost}}.",
       "exportCostColumns": ", cost, currency"
+    },
+    "notMember": {
+      "screen": "Join a group",
+      "title": "You are not a member of this group",
+      "hint": "Open an invite link or enter an invite code.",
+      "myGroups": "Go to my groups"
     }
   }
 }
