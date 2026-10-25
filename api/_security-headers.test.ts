@@ -30,6 +30,15 @@ describe('security headers', () => {
     expect(policy.get('script-src')).not.toContain("'unsafe-eval'");
   });
 
+  it('does not allow whole Google hosts as script or frame sources (JSONP CSP bypass)', () => {
+    const policy = csp();
+    for (const directive of ['script-src', 'frame-src']) {
+      expect(policy.get(directive)).not.toContain('https://www.google.com');
+      expect(policy.get(directive)).not.toContain('https://www.gstatic.com');
+      expect(policy.get(directive)).not.toContain('https://www.recaptcha.net');
+    }
+  });
+
   it('serves fonts and styles from the app origin only (S-13: no font CDN in the chain)', () => {
     const policy = csp();
     expect(policy.get('font-src')).toEqual(["'self'"]);
@@ -45,8 +54,9 @@ describe('security headers', () => {
 
   it('allows what reCAPTCHA Enterprise App Check loads', () => {
     const policy = csp();
-    expect(policy.get('script-src')).toEqual(expect.arrayContaining(['https://www.google.com', 'https://www.gstatic.com']));
-    expect(policy.get('frame-src')).toEqual(expect.arrayContaining(['https://www.google.com']));
+    const recaptcha = ['https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/', 'https://www.recaptcha.net/recaptcha/'];
+    expect(policy.get('script-src')).toEqual(expect.arrayContaining(recaptcha));
+    expect(policy.get('frame-src')).toEqual(expect.arrayContaining(['https://www.google.com/recaptcha/', 'https://www.recaptcha.net/recaptcha/']));
     expect(policy.get('connect-src')).toEqual(expect.arrayContaining(['https://content-firebaseappcheck.googleapis.com']));
   });
 });
