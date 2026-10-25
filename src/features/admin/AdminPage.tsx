@@ -14,7 +14,8 @@ import { describeError, useAction } from '../../shared/lib/useAction';
 import { Badge, Banner, Button, Card, CardHeader, EmptyState, List, ListItem, Select, Skeleton, Stat, TopBar, type BadgeVariant } from '../../shared/ui';
 import { useCrews } from '../crews/hooks';
 import { useMembers } from '../members/hooks';
-import { CO2_KG_PER_KM, ROAD_FACTOR, crewRows, csvFilename, dashboardRanges, groupStats, monthLabel, monthRange, recentMonths, tripsCsv, tripsInRange, type CrewTrips, type CsvLabels } from './stats';
+import { monthCsv } from './exportCsv';
+import { CO2_KG_PER_KM, ROAD_FACTOR, crewRows, csvFilename, dashboardRanges, groupStats, monthLabel, monthRange, recentMonths, type CrewTrips, type CsvLabels } from './stats';
 
 const MONTHS_OFFERED = 12;
 const STAT_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-x-4 gap-y-6';
@@ -190,7 +191,7 @@ function DashboardBody({ group, members, crews, today, month }: BodyProps) {
             <EmptyState compact className="border-t border-line" title={t('dashboard.empty')} description={t('dashboard.emptyHint')} />
           )}
         </Card>
-        <ExportCard group={group} members={members} crews={tripsInRange(crews, range)} month={month} label={label} />
+        <ExportCard group={group} members={members} crews={crews.map((c) => c.crew)} month={month} label={label} />
       </div>
     </>
   );
@@ -199,8 +200,8 @@ function DashboardBody({ group, members, crews, today, month }: BodyProps) {
 interface ExportProps {
   readonly group: Group;
   readonly members: readonly Member[];
-  /** The selected month's trips only. */
-  readonly crews: readonly CrewTrips[];
+  /** The crews to export; their trips are read again when the button is pressed. */
+  readonly crews: readonly Crew[];
   readonly month: string;
   /** The month as the reader says it ("2026년 10월"). */
   readonly label: string;
@@ -216,7 +217,8 @@ function ExportCard({ group, members, crews, month, label }: ExportProps) {
       leg: { out: t('trip.leg.out'), back: t('trip.leg.back') },
       status: { planned: t('trip.status.planned'), needs_driver: t('trip.status.needs_driver'), done: t('trip.status.done'), cancelled: t('trip.status.cancelled') },
     };
-    downloadText(tripsCsv({ crews, members, moneyEnabled: money, labels }), csvFilename(group.name, month));
+    const csv = await monthCsv({ load: (ranges) => loadCrewTrips(group.id, crews, ranges), month, members, moneyEnabled: money, labels });
+    downloadText(csv, csvFilename(group.name, month));
     setExported(month);
   });
 
