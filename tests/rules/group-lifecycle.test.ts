@@ -61,9 +61,13 @@ describe('ownership transfer', () => {
 });
 
 describe('group delete', () => {
-  /** The client's order: crews (trips first), events (cars first), other members, invite code, then me + the group. */
+  /**
+   * The client's order: flag the group deleting, then crews (trips first), events (cars first), other members,
+   * invite code, then me + the group turning into a tombstone (see group-delete.test.ts).
+   */
   async function deleteGroupAs(uid: string): Promise<void> {
     const db = as(uid);
+    await db.doc(g).update({ deleting: true });
     const first = db.batch();
     for (const tid of [TRIP, APPLIED_TRIP]) first.delete(db.doc(`${g}/crews/${CID}/trips/${tid}`));
     first.delete(db.doc(`${g}/crews/${CID}`));
@@ -74,7 +78,7 @@ describe('group delete', () => {
     await first.commit();
     const last = db.batch();
     last.delete(db.doc(`${g}/members/${uid}`));
-    last.delete(db.doc(g));
+    last.set(db.doc(g), { deleted: true, deletedAt: '2026-10-25T00:00:00.000Z' });
     await last.commit();
   }
 

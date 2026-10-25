@@ -25,7 +25,13 @@ export interface InviteCode {
   readonly createdAt: string;
 }
 
-export type CreateGroupInput = Omit<Group, 'id' | 'ownerId' | 'inviteCode' | 'createdAt'>;
+export type CreateGroupInput = Omit<Group, 'id' | 'ownerId' | 'inviteCode' | 'createdAt' | 'deleting'>;
+/** What is left of a deleted group: never deleted, so the gid cannot be taken again (firestore.rules). */
+export interface GroupTombstone {
+  readonly id: string;
+  readonly deleted: true;
+  readonly deletedAt: string;
+}
 export type GroupPatch = Partial<
   Pick<Group, 'name' | 'type' | 'country' | 'locale' | 'allowedEmailDomains' | 'destination' | 'policy'>
 >;
@@ -72,6 +78,7 @@ export function generateInviteCode(): string {
 export const normalizeInviteCode = (code: string): string => code.trim().toUpperCase();
 
 const groupRef = (gid: string) => doc(db, 'groups', gid).withConverter(idConverter<Group>());
+const groupDocRef = (gid: string) => doc(db, 'groups', gid).withConverter(idConverter<Group | GroupTombstone>());
 const inviteRef = (code: string) => doc(db, 'inviteCodes', code).withConverter(idConverter<InviteCode>());
 
 export async function createGroup(input: CreateGroupInput, owner: Actor): Promise<Group> {
@@ -124,9 +131,15 @@ export async function joinGroup(code: string, profile: Actor): Promise<string> {
   return invite.groupId;
 }
 
-export async function getGroup(gid: string): Promise<Group | null> {
-  const snap = await getDoc(groupRef(gid));
+/** The group doc as stored: a live group, the tombstone of a deleted one, or null when there is none. */
+export async function readGroup(gid: string): Promise<Group | GroupTombstone | null> {
+  const snap = await getDoc(groupDocRef(gid));
   return snap.exists() ? snap.data() : null;
+}
+
+export async function getGroup(gid: string): Promise<Group | null> {
+  const group = await readGroup(gid);
+  return group === null || 'deleted' in group ? null : group;
 }
 
 export async function listMyGroups(uid: string): Promise<Group[]> {
@@ -157,12 +170,17 @@ export async function transferOwnership(gid: string, from: string, to: string): 
 const DELETE_BATCH_SIZE = 400;
 
 /**
- * Owner action: delete every crew (and its trips), event (and its cars), the other members and the invite
- * code in batches, then the owner's own membership together with the group doc. The owner's membership
- * goes last because the rules check it for every delete.
+ * Owner action, in steps the rules allow only in this order: flag the group `deleting` (freezes every write
+ * under it), delete every crew (and its trips), event (and its cars), the other members and the invite code
+ * in batches, then the owner's own membership together with turning the group doc into a tombstone. The
+ * owner's membership goes last because the rules check it for every delete. A run on a group that is
+ * already deleting resumes; a run on a tombstone does nothing.
  */
 export async function deleteGroup(group: Pick<Group, 'id' | 'inviteCode'>, ownerUid: string): Promise<void> {
   const gid = group.id;
+  const current = await readGroup(gid);
+  if (current === null || 'deleted' in current) return;
+  if (current.deleting !== true) await updateDoc(groupRef(gid), { deleting: true });
   const list = (name: string) => getDocs(collection(db, 'groups', gid, name));
   const [crews, events, members] = await Promise.all([list('crews'), list('events'), list('members')]);
   const children = await Promise.all([
@@ -183,7 +201,7 @@ export async function deleteGroup(group: Pick<Group, 'id' | 'inviteCode'>, owner
   }
   const last = writeBatch(db);
   last.delete(memberRef(gid, ownerUid));
-  last.delete(groupRef(gid));
+  last.set(groupDocRef(gid), { id: gid, deleted: true, deletedAt: nowIso() });
   await last.commit();
 }
 

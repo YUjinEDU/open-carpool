@@ -43,6 +43,8 @@ export interface Group {
   destination: (LatLng & { label: string }) | null;
   policy: GroupPolicy;
   createdAt: string;
+  /** Set by the owner when a group delete starts; every write under the group is frozen from then on. */
+  deleting?: boolean;
 }
 
 export type MemberRole = 'owner' | 'admin' | 'member';

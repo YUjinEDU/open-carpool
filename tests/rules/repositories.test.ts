@@ -7,7 +7,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 vi.stubEnv('VITE_USE_FIREBASE_EMULATOR', 'true');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', '');
 
-const { auth } = await import('../../src/firebase');
+const { auth, db } = await import('../../src/firebase');
+const { doc, setDoc } = await import('firebase/firestore');
 const { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } = await import('firebase/auth');
 const { ensureUserProfile } = await import('../../src/features/auth/authService');
 const groups = await import('../../src/data/groups');
@@ -155,6 +156,13 @@ describe('repositories under security rules', () => {
     await groups.deleteGroup(group, ben);
     expect((await groups.listMyGroups(ben)).map((g) => g.id)).not.toContain(group.id);
     expect(await groups.lookupInvite(group.inviteCode)).toBeNull();
-    await expect(groups.getGroup(group.id)).rejects.toThrow();
+    expect(await groups.readGroup(group.id)).toMatchObject({ id: group.id, deleted: true });
+    expect(await groups.getGroup(group.id)).toBeNull();
+    await groups.deleteGroup(group, ben); // a second run finds the tombstone and does nothing
+
+    // The gid stays taken: a former member cannot re-create the group as its owner.
+    await become('ann');
+    const { id: _id, ...fields } = group;
+    await expect(setDoc(doc(db, 'groups', group.id), { ...fields, ownerId: ann })).rejects.toThrow();
   });
 });

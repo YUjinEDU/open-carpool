@@ -55,6 +55,16 @@ service cloud.firestore {
         && getAfter(memberPath(gid, from)).data.role == 'admin';
     }
 
+    // Two-phase group delete (V-02): the owner sets `deleting`, which freezes every create and update under the
+    // group and opens the owner-only deletes; the group doc then becomes a tombstone `{ deleted, deletedAt }`.
+    function groupOpen(g) {
+      return g != null && g.data.get('deleting', false) != true && g.data.get('deleted', false) != true;
+    }
+    function isOpen(gid) { return groupOpen(get(groupPath(gid))); }
+    function isOpenAfter(gid) { return groupOpen(getAfter(groupPath(gid))); }
+    function isDeleting(gid) { return get(groupPath(gid)).data.get('deleting', false) == true; }
+    function isOwnerDeleting(gid) { return isOwner(gid) && isDeleting(gid); }
+
     function isCrewMember(gid, cid) {
       return request.auth.uid in get(crewPath(gid, cid)).data.memberIds;
     }
@@ -78,7 +88,7 @@ service cloud.firestore {
 
     function validGroup(d) {
       return d.keys().hasOnly(['name', 'type', 'country', 'locale', 'ownerId', 'inviteCode', 'allowedEmailDomains',
-                               'destination', 'policy', 'createdAt'])
+                               'destination', 'policy', 'createdAt', 'deleting'])
         && name(d.name)
         && d.type in ['company', 'university', 'club', 'school', 'parents', 'church', 'other']
         && str(d.country, 3)
@@ -88,7 +98,11 @@ service cloud.firestore {
         && list(d.allowedEmailDomains, 20)
         && (d.destination == null || (latLng(d.destination) && str(d.destination.label, 200)))
         && d.policy is map
-        && str(d.createdAt, 40);
+        && str(d.createdAt, 40)
+        && (!('deleting' in d) || d.deleting is bool);
+    }
+    function validTombstone(d) {
+      return d.keys().hasOnly(['deleted', 'deletedAt']) && d.deleted == true && str(d.deletedAt, 40);
     }
 
     function validMember(d) {
@@ -305,6 +319,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['id', 'groupId', 'groupName', 'createdBy', 'createdAt'])
         && request.resource.data.createdBy == me()
         && isAdminAfter(request.resource.data.groupId)
+        && isOpenAfter(request.resource.data.groupId)
         && getAfter(groupPath(request.resource.data.groupId)).data.inviteCode == code;
       allow delete: if isAdmin(resource.data.groupId);
     }
@@ -317,13 +332,22 @@ service cloud.firestore {
     // ---------- groups ----------
     match /groups/{gid} {
       allow read: if isActiveMember(gid);
-      allow create: if signedIn() && request.resource.data.ownerId == me() && validGroup(request.resource.data);
-      allow update: if validGroup(request.resource.data) && (
-        (isAdmin(gid) && unchanged(['ownerId', 'createdAt']))
-        || (isOwner(gid) && onlyChanged(['ownerId']) && transferAfterIsComplete(gid, me()))
+      // A tombstone tells former members the group is gone (V-06); it carries no group data.
+      allow get: if signedIn() && resource.data.get('deleted', false) == true;
+      allow create: if signedIn() && request.resource.data.ownerId == me() && validGroup(request.resource.data)
+        && !('deleting' in request.resource.data);
+      allow update: if resource.data.get('deleted', false) != true && (
+        (isOpen(gid) && validGroup(request.resource.data) && request.resource.data.get('deleting', false) == false && (
+          (isAdmin(gid) && unchanged(['ownerId', 'createdAt']))
+          || (isOwner(gid) && onlyChanged(['ownerId']) && transferAfterIsComplete(gid, me()))
+        ))
+        // Group delete, phase 1: the owner freezes the group.
+        || (isOwner(gid) && isOpen(gid) && validGroup(request.resource.data)
+            && onlyChanged(['deleting']) && request.resource.data.deleting == true)
+        // Last step (src/data/groups.ts deleteGroup): the group becomes a tombstone that is never deleted, so
+        // nobody can re-create the gid. Its own membership goes in the same batch.
+        || (isOwnerDeleting(gid) && validTombstone(request.resource.data))
       );
-      // Deleting a group: owner only; the client deletes every subcollection first (src/data/groups.ts).
-      allow delete: if isOwner(gid);
 
       match /members/{memberId} {
         // A former member can still read their own doc to re-join.
@@ -331,6 +355,7 @@ service cloud.firestore {
 
         allow create: if signedIn()
           && memberId == me()
+          && isOpenAfter(gid)
           && validMember(request.resource.data)
           && request.resource.data.uid == me()
           && request.resource.data.status == 'active'
@@ -342,7 +367,7 @@ service cloud.firestore {
               && getAfter(groupPath(gid)).data.ownerId == me())
           );
 
-        allow update: if signedIn() && unchanged(['uid', 'joinedAt']) && validMember(request.resource.data) && (
+        allow update: if signedIn() && isOpen(gid) && unchanged(['uid', 'joinedAt']) && validMember(request.resource.data) && (
           // Self edits while active. A member may leave (the owner may not: S-06), never restore a removal.
           (memberId == me()
             && resource.data.status == 'active'
@@ -369,12 +394,12 @@ service cloud.firestore {
               && ((memberId == getAfter(groupPath(gid)).data.ownerId && request.resource.data.role == 'owner')
                   || (memberId == me() && request.resource.data.role == 'admin')))
         );
-        allow delete: if isOwner(gid);
+        allow delete: if isOwnerDeleting(gid);
       }
 
       match /crews/{cid} {
         allow read: if isActiveMember(gid);
-        allow create: if isActiveMember(gid)
+        allow create: if isActiveMember(gid) && isOpen(gid)
           && validCrew(request.resource.data)
           && request.resource.data.createdBy == me()
           && me() in request.resource.data.memberIds
@@ -382,7 +407,7 @@ service cloud.firestore {
           && request.resource.data.status == 'proposed'
           && startsWithEmptyLedger(request.resource.data);
 
-        allow update: if isActiveMember(gid) && validCrew(request.resource.data) && (
+        allow update: if isActiveMember(gid) && isOpen(gid) && validCrew(request.resource.data) && (
           // (a) accept for yourself, or decline (leave the proposal)
           (me() in resource.data.memberIds && (isOwnAcceptance() || isOwnDecline()))
           // (b)+(d) settings and captain handover: captain or admin; the captain stays a crew member (validCrew)
@@ -403,19 +428,19 @@ service cloud.firestore {
               || isAdmin(gid)
               || (me() in resource.data.memberIds && resource.data.memberIds.size() == 2))
           // Group delete: the owner removes every crew, history included.
-          || isOwner(gid);
+          || isOwnerDeleting(gid);
 
         match /trips/{tid} {
           allow read: if isActiveMember(gid);
           // S-03: a trip is born unsettled, under the id "<date>_<leg>".
-          allow create: if isActiveMember(gid) && (isCrewMember(gid, cid) || isAdmin(gid))
+          allow create: if isActiveMember(gid) && isOpen(gid) && (isCrewMember(gid, cid) || isAdmin(gid))
             && validTrip(request.resource.data)
             && tid == request.resource.data.date + '_' + request.resource.data.leg
             && request.resource.data.status in ['planned', 'needs_driver']
             && request.resource.data.applied == false
             && request.resource.data.completedBy == null
             && request.resource.data.completedAt == null;
-          allow update: if isActiveMember(gid)
+          allow update: if isActiveMember(gid) && isOpen(gid)
             && (isCrewMember(gid, cid) || isAdmin(gid))
             && validTrip(request.resource.data)
             && (
@@ -436,14 +461,14 @@ service cloud.firestore {
                   && onlyChanged(['status', 'applied', 'completedBy', 'completedAt', 'driverId', 'riderIds'])
                   && getAfter(crewPath(gid, cid)).data.get('ledgerTripId', null) == tid)
             );
-          allow delete: if isOwner(gid);
+          allow delete: if isOwnerDeleting(gid);
         }
       }
 
       match /events/{eid} {
         allow read: if isActiveMember(gid);
-        allow create: if isActiveMember(gid) && request.resource.data.createdBy == me() && validEvent(request.resource.data);
-        allow update: if isActiveMember(gid)
+        allow create: if isActiveMember(gid) && isOpen(gid) && request.resource.data.createdBy == me() && validEvent(request.resource.data);
+        allow update: if isActiveMember(gid) && isOpen(gid)
           && (resource.data.createdBy == me() || isAdmin(gid))
           && unchanged(['createdBy', 'createdAt'])
           && validEvent(request.resource.data);
@@ -452,12 +477,12 @@ service cloud.firestore {
         match /cars/{carId} {
           allow read: if isActiveMember(gid);
           // A car starts empty; riders add themselves (S-08).
-          allow create: if isActiveMember(gid)
+          allow create: if isActiveMember(gid) && isOpen(gid)
             && carId == me()
             && request.resource.data.driverId == me()
             && validCar(request.resource.data)
             && request.resource.data.riderIds.size() == 0;
-          allow update: if isActiveMember(gid) && validCar(request.resource.data) && (
+          allow update: if isActiveMember(gid) && isOpen(gid) && validCar(request.resource.data) && (
             // The driver edits the car and may drop riders, never enroll anyone (S-08).
             (carId == me()
               && request.resource.data.driverId == me()
@@ -465,7 +490,7 @@ service cloud.firestore {
             // Riders join/leave by adding or removing only their own uid.
             || (onlyChanged(['riderIds']) && riderChangeIsMine())
           );
-          allow delete: if isActiveMember(gid) && (carId == me() || isOwner(gid));
+          allow delete: if isActiveMember(gid) && (carId == me() || isOwnerDeleting(gid));
         }
       }
     }
