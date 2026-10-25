@@ -30,6 +30,7 @@ A quiet planning board for people who already know each other. Warm off-white ca
 ```
 /                     signed out: Sign-in (Landing)        signed in: My groups (list + create + join)
 /signin, /signin/finish
+/legal/terms, /legal/privacy   이용약관 / 개인정보처리방침 rendered from docs/legal (works signed out)
 /join/:code           Invite landing (works signed out; sign-in inline, then Join)
 /groups/new           Group create wizard (3 steps)
 /g/:gid               Group shell with BottomNav
@@ -125,7 +126,7 @@ All copy is passed in as props (i18n lives in the feature). All colours and size
 | Switch | label + description row, 52x32 track, 26px thumb with check glyph; the whole row is the switch button, so the label is part of the 44px target | on (accent, thumb right + check), off, disabled | role=switch on the row, aria-checked, labelledby/describedby; the track is decorative |
 | Checkbox | boxPosition start/end, description | checked (accent fill, white check), focus ring on the drawn box, disabled | native input (sr-only) under a drawn box |
 | SegmentedControl | 2-4 options, md/lg, fullWidth | selected = raised surface | radiogroup, arrow keys, roving tabindex |
-| Chip / ChipGroup | md 44 / sm 36, selected, showCheck, icon; group single or multiple | selected = wash-strong + accent ink + semibold (+ check) | aria-pressed, group aria-label |
+| Chip / ChipGroup | md 44 / sm 36, selected, showCheck, icon; group single or multiple | selected = wash-strong + accent ink + semibold + check: inline by default, a 16px corner marker (accent fill, white check) when `showCheck={false}` for dense rows such as weekdays | aria-pressed, group aria-label |
 | Badge | neutral, brand, success, warn, danger, info; sm/md; icon | static | text, glyph optional |
 | Avatar / AvatarStack | xs 24 to xl 64, tint auto/neutral, marker glyph, src, `initials` override (group names show their first two characters); stack max + "+N" | static | role=img with name(s) |
 | TopBar | title, onBack/backLabel, onTitleClick (switcher), leading, trailing, sticky, transparent, wide | static | header, h1 or switcher button with aria-haspopup |
@@ -313,6 +314,14 @@ The screens follow the specs above with these deliberate differences, each visib
 - **Churn** shows the captain a warn Banner on Crew detail when `domain/churn` reports declining or stalled, with the at-risk names and a link to the crews page.
 - **Plate rule**: a trip row shows the info Badge 부제 적용 when the group's plate rotation excluded a driver that day (names in the title attribute).
 - `/join/:code` works signed out: the shared link carries the group name (`?name=`, display only, verified after sign-in), the Sign-in block renders inline under the invite card, and a first-time email-link user is asked for a name (`NameForm`) before 참여하기, so the placeholder "멤버" never reaches a member document. Inside an in-app browser (KakaoTalk, LINE, ...) 외부 브라우저로 열기 is the lg primary action. Already-member and removed states render as Banners on the page. The first-time captain Sheet is the post-create invite sheet above.
+- **Admin dashboard period** (U-23): one `Select` of the last 12 months (Intl names such as "2026년 10월" / "October 2026") at the top of the page drives the stats card, the crew rows and the CSV, and every card description names that month; the churn Badge keeps comparing the two weeks before today. The CSV keeps its English header row and BOM, but `leg` and `status` carry the screen's words (출발/귀가, 예정/운전자 필요/완료/취소) instead of the stored enums.
+- **Route fallback** (U-31): `LoadingState` paints a TopBar-shaped bar (same height, surface and hairline) above the card skeletons, so the header never disappears on a tab's first visit.
+- **`/g/:gid` as a non-member** (U-30): `GroupLayout` renders `NotMemberState` (TopBar back, EmptyState "이 그룹의 벤버가 아니에요", the invite-code form from My groups, 내 그룹으로 가기) instead of a silent redirect; a removed member sees 참여할 수 없어요 without the form; a load failure shows `LoadErrorState` with 다시 시도.
+- **Invite landing copy** (U-32): the group name appears once, as the heading; the sentence under it says what joining gives. Type, member count and inviter stay absent on purpose: the rules let a non-member read only the invite document.
+- **Legal** (U-37): `/legal/terms` and `/legal/privacy` render `docs/legal/*.{ko,en}.md` (Vite `?raw`; `src/features/legal/markdown.ts` parses headings, paragraphs, quotes, lists, tables, strong and code, nothing else) inside a Card under a TopBar with back; `ConsentNote` links both documents from the consent line on Sign-in and the invite landing.
+- **내 계정 language** (U-40): the segmented control applies the locale on change (`setLocale`) and writes the profile in the background like the theme control; a failed write reverts the control and reports with an error toast.
+- **Weekday chips** (U-41): `showCheck={false}` shows the corner check marker on selected chips (Chip row above), so the seven-chip row keeps its width and selection is never colour alone.
+- **Desktop tab bar** (U-44): the 448px nav island has no side borders; like the TopBar it is surface + hairline only.
 
 ## Implementation notes for workers
 
