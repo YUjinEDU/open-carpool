@@ -30,6 +30,15 @@ function crew(overrides: Record<string, unknown> = {}) {
 }
 const event = { title: 'Offsite', date: '2026-11-02', time: '09:00', place: 'HQ', createdBy: 'alice', createdAt: NOW };
 
+/** Settling TRIP (driver alice, rider bob): the trip flips applied and the crew ledger moves, in one batch. */
+function settle(uid: string) {
+  const db = as(uid);
+  const batch = db.batch();
+  batch.update(db.doc(`${g}/crews/${CID}/trips/${TRIP}`), { status: 'done', applied: true, completedBy: uid, completedAt: NOW });
+  batch.update(db.doc(`${g}/crews/${CID}`), { scores: { alice: 30, bob: -30 }, lastDroveOn: { alice: '2026-10-26' }, ledgerTripId: TRIP });
+  return batch.commit();
+}
+
 /** Every kind of create/update under a group; each succeeds on an open group (the control below). */
 const writes: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['owner renames the group', () => as('owner').doc(g).update({ name: 'Renamed' })],
@@ -47,6 +56,9 @@ const writes: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
   ['captain edits crew settings', () => as('alice').doc(`${g}/crews/${CID}`).update({ name: 'Late' })],
   ['member plans a trip', () => as('alice').doc(`${g}/crews/${CID}/trips/2026-10-27_out`).set(trip('2026-10-27'))],
   ['member marks a rider absent', () => as('alice').doc(`${g}/crews/${CID}/trips/${TRIP}`).update({ absentIds: ['bob'] })],
+  ['member settles a trip (trip and crew ledger in one batch)', () => settle('alice')],
+  ['admin settles a trip (crew ledger update through the admin path)', () => settle('admin')],
+  ['member fills in the cost of a settled trip', () => as('alice').doc(`${g}/crews/${CID}/trips/${APPLIED_TRIP}`).update({ cost: { totalAmount: 12000, currency: 'KRW' } })],
   ['member creates an event', () => as('alice').doc(`${g}/events/e2`).set(event)],
   ['creator edits an event', () => as('alice').doc(`${g}/events/${EID}`).update({ title: 'Renamed' })],
   ['member offers a car', () => as('bob').doc(`${g}/events/${EID}/cars/bob`).set({ driverId: 'bob', driverName: 'bob', seats: 2, riderIds: [], note: '' })],
