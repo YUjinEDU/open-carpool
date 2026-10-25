@@ -118,4 +118,43 @@ describe('repositories under security rules', () => {
     );
     await expect(events.joinCar(group.id, event.id, ben, ann)).rejects.toBeInstanceOf(events.CarFullError);
   });
+
+  it('transfers ownership, lets the old owner leave, and deletes the group with its data', async () => {
+    const ann = await become('ann');
+    const group = await groups.createGroup(
+      {
+        name: `Lifecycle ${run}`, type: 'club', country: 'KR', locale: 'ko', allowedEmailDomains: [], destination: null,
+        policy: { costMode: 'rotation', absenceCutoffHour: 21, plateRotation: 'none' },
+      },
+      { uid: ann, displayName: 'Ann' },
+    );
+    const ben = await become('ben');
+    await groups.joinGroup(group.inviteCode, { uid: ben, displayName: 'Ben' });
+    await members.updateMyMember(group.id, ben, { canDrive: true, seats: 3 });
+    const crew = await crews.createCrew(
+      group.id,
+      { name: 'Evening', memberIds: [ben, ann], captainId: ben, backupDriverIds: [], days: [1], outTime: '08:00', backTime: null, pickupNote: '', waitLimitMin: 5 },
+      ben,
+    );
+    const planned = {
+      id: '2026-10-26_out', date: '2026-10-26', leg: 'out' as const, driverId: ben, riderIds: [ann],
+      absentIds: [], status: 'planned' as const, applied: false, completedBy: null, completedAt: null, cost: null,
+    };
+    await trips.upsertPlannedTrips(group.id, crew.id, { ids: [planned.id], writesFor: () => [planned] });
+    const event = await events.createEvent(group.id, { title: 'Picnic', date: '2026-11-01', time: '10:00', place: 'Park' }, ben);
+    await events.upsertMyCar(group.id, event.id, ben, { driverName: 'Ben', seats: 2, note: '' });
+    await expect(groups.deleteGroup(group, ben)).rejects.toThrow();
+
+    await become('ann');
+    await groups.transferOwnership(group.id, ann, ben);
+    expect((await groups.getGroup(group.id))?.ownerId).toBe(ben);
+    expect((await members.getMember(group.id, ben))?.role).toBe('owner');
+    await members.leaveGroup(group.id, ann);
+
+    await become('ben');
+    await groups.deleteGroup(group, ben);
+    expect((await groups.listMyGroups(ben)).map((g) => g.id)).not.toContain(group.id);
+    expect(await groups.lookupInvite(group.inviteCode)).toBeNull();
+    await expect(groups.getGroup(group.id)).rejects.toThrow();
+  });
 });

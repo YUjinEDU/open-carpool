@@ -5,10 +5,12 @@ import {
   getDoc,
   getDocs,
   query,
+  runTransaction,
   setDoc,
   updateDoc,
   where,
   writeBatch,
+  type DocumentReference,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Group, UserProfile } from '../domain/types';
@@ -33,6 +35,14 @@ export class InviteNotFoundError extends Error {
   constructor(readonly code: string) {
     super(`invite code not found: ${code}`);
     this.name = 'InviteNotFoundError';
+  }
+}
+
+/** The member picked as the new owner is not an active member of the group (any more). */
+export class OwnershipTargetError extends Error {
+  constructor(readonly uid: string) {
+    super(`not an active member: ${uid}`);
+    this.name = 'OwnershipTargetError';
   }
 }
 
@@ -130,6 +140,51 @@ export async function listMyGroups(uid: string): Promise<Group[]> {
 
 export async function updateGroup(gid: string, patch: GroupPatch): Promise<void> {
   await updateDoc(groupRef(gid), { ...patch });
+}
+
+/** Owner action: `to` becomes owner and `from` (the current owner) becomes admin, atomically (rules check all three writes). */
+export async function transferOwnership(gid: string, from: string, to: string): Promise<void> {
+  await runTransaction(db, async (tx) => {
+    const target = await tx.get(memberRef(gid, to));
+    if (to === from || !target.exists() || target.data().status !== 'active') throw new OwnershipTargetError(to);
+    tx.update(groupRef(gid), { ownerId: to });
+    tx.update(memberRef(gid, to), { role: 'owner' });
+    tx.update(memberRef(gid, from), { role: 'admin' });
+  });
+}
+
+/** Stays under Firestore's 500 writes per batch. */
+const DELETE_BATCH_SIZE = 400;
+
+/**
+ * Owner action: delete every crew (and its trips), event (and its cars), the other members and the invite
+ * code in batches, then the owner's own membership together with the group doc. The owner's membership
+ * goes last because the rules check it for every delete.
+ */
+export async function deleteGroup(group: Pick<Group, 'id' | 'inviteCode'>, ownerUid: string): Promise<void> {
+  const gid = group.id;
+  const list = (name: string) => getDocs(collection(db, 'groups', gid, name));
+  const [crews, events, members] = await Promise.all([list('crews'), list('events'), list('members')]);
+  const children = await Promise.all([
+    ...crews.docs.map((d) => getDocs(collection(d.ref, 'trips'))),
+    ...events.docs.map((d) => getDocs(collection(d.ref, 'cars'))),
+  ]);
+  const refs: DocumentReference[] = [
+    ...children.flatMap((snap) => snap.docs.map((d) => d.ref)),
+    ...crews.docs.map((d) => d.ref),
+    ...events.docs.map((d) => d.ref),
+    ...members.docs.filter((d) => d.id !== ownerUid).map((d) => d.ref),
+    inviteRef(group.inviteCode),
+  ];
+  for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
+    const batch = writeBatch(db);
+    for (const ref of refs.slice(i, i + DELETE_BATCH_SIZE)) batch.delete(ref);
+    await batch.commit();
+  }
+  const last = writeBatch(db);
+  last.delete(memberRef(gid, ownerUid));
+  last.delete(groupRef(gid));
+  await last.commit();
 }
 
 /** Admin action: issue a new code and retire the old one atomically. Returns the new code. */
