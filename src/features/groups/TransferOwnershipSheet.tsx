@@ -14,10 +14,12 @@ export interface TransferOwnershipSheetProps {
   readonly onClose: () => void;
   /** The owner is leaving: transfer first, then leave and go to My groups. */
   readonly leaveAfter: boolean;
+  /** Offered when no other active member can take over. */
+  readonly onDelete?: () => void;
 }
 
 /** Owner picks an active member as the new owner; the owner becomes an admin (and may then leave). */
-export function TransferOwnershipSheet({ open, onClose, leaveAfter }: TransferOwnershipSheetProps) {
+export function TransferOwnershipSheet({ open, onClose, leaveAfter, onDelete }: TransferOwnershipSheetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { group, me, refresh } = useGroup();
@@ -82,7 +84,16 @@ export function TransferOwnershipSheet({ open, onClose, leaveAfter }: TransferOw
     >
       {members.status === 'loading' && <Skeleton className="h-28" />}
       {members.status === 'error' && <Banner variant="danger">{t('common.loadFailed')}</Banner>}
-      {members.status === 'ready' && candidates.length === 0 && <p className="text-sub text-ink-2">{t('settings.transfer.empty')}</p>}
+      {members.status === 'ready' && candidates.length === 0 && (
+        <>
+          <p className="text-sub text-ink-2">{t('settings.transfer.empty')}</p>
+          {onDelete && (
+            <Button variant="danger" className="mt-3" onClick={onDelete} data-testid="transfer-delete-group">
+              {t('settings.owner.delete')}
+            </Button>
+          )}
+        </>
+      )}
       {candidates.length > 0 && (
         <List inset={false} className="-mx-4">
           {candidates.map((m) => (

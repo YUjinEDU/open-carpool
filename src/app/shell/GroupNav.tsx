@@ -172,12 +172,12 @@ export function GroupNav() {
           </>
         }
       />
-      {isOwner && (
-        <>
-          <TransferOwnershipSheet open={ownerSheet === 'transfer'} onClose={() => setOwnerSheet('none')} leaveAfter />
-          <DeleteGroupDialog open={ownerSheet === 'delete'} onClose={() => setOwnerSheet('none')} />
-        </>
+      {/* Mounted only while open: its members load is not needed on every group page (V-11). Not gated on
+          isOwner, which turns false once the transfer goes through and the leave is still to come (V-05). */}
+      {ownerSheet === 'transfer' && (
+        <TransferOwnershipSheet open onClose={() => setOwnerSheet('none')} leaveAfter onDelete={() => setOwnerSheet('delete')} />
       )}
+      {isOwner && <DeleteGroupDialog open={ownerSheet === 'delete'} onClose={() => setOwnerSheet('none')} />}
     </>
   );
 }
