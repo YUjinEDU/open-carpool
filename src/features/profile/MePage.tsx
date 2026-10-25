@@ -12,6 +12,7 @@ import type { Locale } from '../../domain/types';
 import { LOCALES, setLocale as applyLocale } from '../../shared/i18n';
 import { describeError, useAction } from '../../shared/lib/useAction';
 import { Avatar, Button, Card, CardHeader, Input, SegmentedControl, Switch, TopBar, showToast } from '../../shared/ui';
+import { patchProfile } from '../../data/users';
 import { signOut } from '../auth/authService';
 
 /** Account settings shared by every group: name, language, theme, reminders, sign out. */
@@ -19,21 +20,28 @@ export function MePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const back = useBack('/');
-  const { saveProfile, rename } = useAuth();
+  const { rename } = useAuth();
   const { profile } = useSession();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [locale, setLocaleState] = useState<Locale>(profile.locale);
   // Background locale writes run one after another, so the last choice is the one that lands in the profile.
   const localeSaves = useRef(Promise.resolve());
+  const savedLocale = useRef(profile.locale);
+  const chosenLocale = useRef(profile.locale);
   const [theme, setTheme] = useState<ThemePreference>(() => readThemePreference());
   const [notify, setNotify] = useState(() => digestOptIn());
   const [permission, setPermission] = useState(() => notificationState());
 
   const save = useAction(async () => {
     const name = displayName.trim();
-    await saveProfile({ ...profile, displayName: name, locale });
-    // The account name is the one name: every membership follows it.
-    if (name !== profile.displayName) await rename(name);
+    // The language is written by changeLocale; wait for those writes, then change only the name.
+    await localeSaves.current;
+    if (name !== profile.displayName) {
+      // The account name is the one name: every membership follows it.
+      await rename(name);
+      // rename writes the session's profile copy, whose locale predates the field patches: put the choice back.
+      await patchProfile(profile.uid, { locale: chosenLocale.current });
+    }
     showToast(t('common.saved'), 'success');
   });
   const leave = useAction(async () => {
@@ -56,15 +64,21 @@ export function MePage() {
   };
   // Like the theme: the language switches at once; the profile write follows without a 저장 tap.
   const changeLocale = (next: Locale) => {
-    const saved = profile.locale;
+    chosenLocale.current = next;
     setLocaleState(next);
     applyLocale(next);
     localeSaves.current = localeSaves.current
-      .then(() => saveProfile({ ...profile, locale: next }))
+      .then(async () => {
+        await patchProfile(profile.uid, { locale: next });
+        savedLocale.current = next;
+      })
       .catch((e: unknown) => {
         showToast(describeError(e), 'error');
-        setLocaleState(saved);
-        applyLocale(saved);
+        // A newer choice is still queued: it decides what the UI shows.
+        if (chosenLocale.current !== next) return;
+        chosenLocale.current = savedLocale.current;
+        setLocaleState(savedLocale.current);
+        applyLocale(savedLocale.current);
       });
   };
   const onSubmit = (e: FormEvent) => {
