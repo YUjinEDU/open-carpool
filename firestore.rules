@@ -40,6 +40,21 @@ service cloud.firestore {
             && request.auth.token.email.lower().split('@')[1] in group.data.allowedEmailDomains);
     }
 
+    // The group's owner: the ownerId of the group and an active member doc with role 'owner'.
+    function isOwner(gid) {
+      return isActiveMember(gid) && get(myMemberPath(gid)).data.role == 'owner' && get(groupPath(gid)).data.ownerId == me();
+    }
+    // Ownership transfer, one batch: the owner moves ownerId to an active member, who becomes 'owner',
+    // and the old owner becomes 'admin'. Each of the three writes checks the other two via getAfter.
+    function transferAfterIsComplete(gid, from) {
+      let to = getAfter(groupPath(gid)).data.ownerId;
+      let next = getAfter(memberPath(gid, to));
+      return to != from
+        && next != null && next.data.role == 'owner' && next.data.status == 'active'
+        && get(memberPath(gid, to)).data.status == 'active'
+        && getAfter(memberPath(gid, from)).data.role == 'admin';
+    }
+
     function isCrewMember(gid, cid) {
       return request.auth.uid in get(crewPath(gid, cid)).data.memberIds;
     }
@@ -244,7 +259,18 @@ service cloud.firestore {
         || !(uid in get(crewPath(gid, cid)).data.memberIds)
         || !exists(memberPath(gid, uid))
         || get(memberPath(gid, uid)).data.status != 'active'
-        || get(memberPath(gid, uid)).data.canDrive != true;
+        || get(memberPath(gid, uid)).data.canDrive != true
+        || plateBarred(gid, uid, resource.data.date);
+    }
+    // Mirrors plateAllowed (src/domain/policies.ts): the driver's plate may not drive on this date.
+    function plateBarred(gid, uid, date) {
+      let rotation = get(groupPath(gid)).data.policy.get('plateRotation', 'none');
+      let digit = get(memberPath(gid, uid)).data.plateLastDigit;
+      let ymd = date.split('-');
+      let day = timestamp.date(int(ymd[0]), int(ymd[1]), int(ymd[2]));
+      return digit is int && (
+        (rotation == 'odd-even' && digit % 2 != day.day() % 2)
+        || (rotation == 'five-day' && day.dayOfWeek() <= 5 && digit % 5 == day.dayOfWeek() % 5));
     }
     // Who may change a trip's driver: admins; a volunteer taking an open seat for themselves; the driver
     // giving up; the planner replacing an unavailable driver or reopening a cancelled trip with a crew member.
@@ -292,7 +318,12 @@ service cloud.firestore {
     match /groups/{gid} {
       allow read: if isActiveMember(gid);
       allow create: if signedIn() && request.resource.data.ownerId == me() && validGroup(request.resource.data);
-      allow update: if isAdmin(gid) && unchanged(['ownerId', 'createdAt']) && validGroup(request.resource.data);
+      allow update: if validGroup(request.resource.data) && (
+        (isAdmin(gid) && unchanged(['ownerId', 'createdAt']))
+        || (isOwner(gid) && onlyChanged(['ownerId']) && transferAfterIsComplete(gid, me()))
+      );
+      // Deleting a group: owner only; the client deletes every subcollection first (src/data/groups.ts).
+      allow delete: if isOwner(gid);
 
       match /members/{memberId} {
         // A former member can still read their own doc to re-join.
@@ -331,7 +362,14 @@ service cloud.firestore {
               && resource.data.role != 'owner'
               && request.resource.data.role in ['admin', 'member']
               && adminStatusChangeOk())
+          // Ownership transfer (see transferAfterIsComplete): the new owner's doc and the old owner's own doc.
+          || (isOwner(gid)
+              && onlyChanged(['role'])
+              && transferAfterIsComplete(gid, me())
+              && ((memberId == getAfter(groupPath(gid)).data.ownerId && request.resource.data.role == 'owner')
+                  || (memberId == me() && request.resource.data.role == 'admin')))
         );
+        allow delete: if isOwner(gid);
       }
 
       match /crews/{cid} {
@@ -363,7 +401,9 @@ service cloud.firestore {
           && resource.data.lastDroveOn.size() == 0
           && (me() == resource.data.captainId
               || isAdmin(gid)
-              || (me() in resource.data.memberIds && resource.data.memberIds.size() == 2));
+              || (me() in resource.data.memberIds && resource.data.memberIds.size() == 2))
+          // Group delete: the owner removes every crew, history included.
+          || isOwner(gid);
 
         match /trips/{tid} {
           allow read: if isActiveMember(gid);
@@ -396,6 +436,7 @@ service cloud.firestore {
                   && onlyChanged(['status', 'applied', 'completedBy', 'completedAt', 'driverId', 'riderIds'])
                   && getAfter(crewPath(gid, cid)).data.get('ledgerTripId', null) == tid)
             );
+          allow delete: if isOwner(gid);
         }
       }
 
@@ -424,7 +465,7 @@ service cloud.firestore {
             // Riders join/leave by adding or removing only their own uid.
             || (onlyChanged(['riderIds']) && riderChangeIsMine())
           );
-          allow delete: if isActiveMember(gid) && carId == me();
+          allow delete: if isActiveMember(gid) && (carId == me() || isOwner(gid));
         }
       }
     }
