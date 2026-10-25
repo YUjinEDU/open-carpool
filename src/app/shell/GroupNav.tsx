@@ -105,7 +105,6 @@ export function GroupNav() {
         items={items}
         activeKey={active}
         label={t('nav.mainMenu')}
-        className="lg:border-x lg:border-line"
         onSelect={(item, event) => {
           if (item.href) {
             event.preventDefault();
