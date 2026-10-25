@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-import { Car, Check, Pause, Play, Share2, UserX } from 'lucide-react';
+import { Car, Check, Pause, Pencil, Play, Share2, UserX } from 'lucide-react';
 import { ErrorBanner } from '../../app/fallbacks';
 import { useGroup } from '../../app/providers/group';
 import { PageBody } from '../../app/shell/PageBody';
@@ -15,13 +15,14 @@ import type { Crew, Member, Trip } from '../../domain/types';
 import { formatDate, joinNames } from '../../shared/lib/format';
 import { useLoad } from '../../shared/lib/loadable';
 import { useAction } from '../../shared/lib/useAction';
-import { Avatar, Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, LedgerBar, List, ListItem, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
+import { Avatar, Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, LedgerBar, List, ListItem, Sheet, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
 import { LegalNotice } from '../groups/LegalNotice';
 import { NavLinks } from '../map/NavLinks';
 import { useMembers } from '../members/hooks';
 import { GROUP_TZ, useCrewPlan } from '../trips/hooks';
 import { compareTrips, legTime } from '../trips/nextTrip';
 import { TripCard } from '../trips/TripCard';
+import { CrewForm } from './CrewForm';
 import { useCrews } from './hooks';
 import { useProposalActions } from './useProposalActions';
 import { weekdayRange } from '../profile/schedule';
@@ -101,6 +102,7 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
   const [declining, setDeclining] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [pausing, setPausing] = useState(false);
+  const [editing, setEditing] = useState(false);
   const closeDecline = () => {
     setDeclining(false);
     decline.clearError();
@@ -349,7 +351,17 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
         </Card>
 
         <Card as="section" variant="tonal" padding="none">
-          <CardHeader className="px-4 pt-4" title={t('crew.facts')} />
+          <CardHeader
+            className="px-4 pt-4"
+            title={t('crew.facts')}
+            action={
+              manages ? (
+                <Button variant="ghost" size="sm" leadingIcon={<Pencil />} onClick={() => setEditing(true)} data-testid="crew-edit">
+                  {t('crew.edit')}
+                </Button>
+              ) : undefined
+            }
+          />
           <List inset={false} className="mt-1">
             {facts.map((fact) => (
               <ListItem key={fact.key} title={<span className="text-sub text-ink-2">{fact.label}</span>} trailing={<span className="text-body text-ink">{fact.value}</span>} className="min-h-12 py-2" />
@@ -376,6 +388,9 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
         <LegalNotice group={group} variant="caption" data-testid="crew-legal-notice" />
       </PageBody>
 
+      <Sheet open={editing} onClose={() => setEditing(false)} title={t('crewForm.editTitle')} closeLabel={t('common.close')}>
+        {editing && <CrewForm members={members} crew={crew} onDone={() => setEditing(false)} />}
+      </Sheet>
       <Dialog
         open={declining}
         onClose={closeDecline}

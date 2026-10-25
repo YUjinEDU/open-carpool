@@ -58,6 +58,16 @@ describe('crew settings', () => {
     await assertFails(crewDoc('bob').update({ status: 'paused' }));
   });
 
+  it('accepts the crew edit form write from the captain or an admin, never from other members', async () => {
+    const edit = { name: 'Early', days: [1, 3, 5], outTime: '07:30', backTime: null, pickupNote: 'gate 2', waitLimitMin: 15 };
+    await assertSucceeds(crewDoc('alice').update(edit));
+    await assertSucceeds(crewDoc('admin').update({ ...edit, name: 'Late' }));
+    await assertFails(crewDoc('bob').update(edit));
+    await assertFails(crewDoc('carol').update(edit));
+    await assertFails(crewDoc('stranger').update(edit));
+    await assertFails(crewDoc('alice').update({ ...edit, memberIds: ['alice', 'bob', 'carol'] }));
+  });
+
   it('denies changing provenance fields', async () => {
     await assertFails(crewDoc('admin').update({ createdBy: 'admin' }));
     await assertFails(crewDoc('alice').update({ createdAt: '2020-01-01T00:00:00.000Z' }));
