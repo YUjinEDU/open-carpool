@@ -74,6 +74,11 @@
     "nameDefaultError": "Replace the placeholder with your real name",
     "nameSaving": "Saving"
   },
+  "groupDeleted": {
+    "title": "This group was deleted",
+    "body": "Its owner deleted the group with its crews, trips and events.",
+    "home": "Go to My groups"
+  },
   "notFound": {
     "title": "This page does not exist",
     "home": "Go home"

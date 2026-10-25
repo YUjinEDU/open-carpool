@@ -74,6 +74,11 @@
     "nameDefaultError": "기본 이름 대신 실제 이름을 적어 주세요",
     "nameSaving": "저장 중"
   },
+  "groupDeleted": {
+    "title": "삭제된 그룹이에요",
+    "body": "그룹장이 크루, 운행 기록, 일정과 함께 그룹을 삭제했어요.",
+    "home": "내 그룹으로"
+  },
   "notFound": {
     "title": "이 페이지가 없어요",
     "home": "홈으로"
