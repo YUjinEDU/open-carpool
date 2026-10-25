@@ -53,11 +53,13 @@ App Check makes Firestore reject requests that do not come from your real web ap
 
    | Header | Value |
    |---|---|
-   | `Content-Security-Policy` | `default-src 'self'`; `script-src 'self' https://apis.google.com https://www.gstatic.com https://maps.googleapis.com` (Firebase Auth popup helper, Google Maps JS); `connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com` (Auth, Firestore, Maps; Naver goes through `/api`); `img-src 'self' data: blob: https:`; `style-src 'self' 'unsafe-inline'`; `font-src 'self'` (Pretendard is bundled from the npm package); `frame-src https://*.firebaseapp.com https://*.web.app https://accounts.google.com` (Auth iframe/popup); `worker-src 'self'`; `manifest-src 'self'`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'` |
+   | `Content-Security-Policy` | The value of the `Content-Security-Policy` header in `vercel.json` (the single source; `api/_security-headers.test.ts` checks it). Currently: `default-src 'self'; script-src 'self' https://apis.google.com https://maps.googleapis.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.recaptcha.net/recaptcha/; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://maps.googleapis.com https://content-firebaseappcheck.googleapis.com https://www.google.com https://www.recaptcha.net; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-src https://*.firebaseapp.com https://*.web.app https://accounts.google.com https://www.google.com/recaptcha/ https://www.recaptcha.net/recaptcha/; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
    | `X-Content-Type-Options` | `nosniff` |
    | `X-Frame-Options` | `DENY` |
    | `Referrer-Policy` | `strict-origin-when-cross-origin` |
    | `Permissions-Policy` | `geolocation=(self), camera=(), microphone=()` |
+
+   `script-src` still allows `https://maps.googleapis.com` and `https://apis.google.com` as whole hosts because Maps JS and Firebase Auth need them; this accepted residual is defence in depth only, as the app has no HTML injection point.
 
    If you use a **custom Auth domain** (not `*.firebaseapp.com` / `*.web.app`), add it to `frame-src`. If you add scripts or APIs, extend the policy; the browser console reports blocked requests as CSP violations. On other hosts, send the same headers from your server config.
 
