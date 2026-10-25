@@ -168,6 +168,32 @@ export async function transferOwnership(gid: string, from: string, to: string): 
 
 /** Stays under Firestore's 500 writes per batch. */
 const DELETE_BATCH_SIZE = 400;
+/** Listing passes before giving up; a pass after the freeze normally finds nothing new (W-02). */
+const MAX_DELETE_PASSES = 4;
+
+/** The group still has data after every pass: running the delete again resumes it. */
+export class GroupDeleteIncompleteError extends Error {
+  constructor(readonly groupId: string) {
+    super(`group ${groupId} still has data after ${MAX_DELETE_PASSES} delete passes`);
+    this.name = 'GroupDeleteIncompleteError';
+  }
+}
+
+/** Every doc under the group except the owner's membership, children before their parents. */
+async function listGroupData(gid: string, ownerUid: string): Promise<DocumentReference[]> {
+  const list = (name: string) => getDocs(collection(db, 'groups', gid, name));
+  const [crews, events, members] = await Promise.all([list('crews'), list('events'), list('members')]);
+  const children = await Promise.all([
+    ...crews.docs.map((d) => getDocs(collection(d.ref, 'trips'))),
+    ...events.docs.map((d) => getDocs(collection(d.ref, 'cars'))),
+  ]);
+  return [
+    ...children.flatMap((snap) => snap.docs.map((d) => d.ref)),
+    ...crews.docs.map((d) => d.ref),
+    ...events.docs.map((d) => d.ref),
+    ...members.docs.filter((d) => d.id !== ownerUid).map((d) => d.ref),
+  ];
+}
 
 /**
  * Owner action, in steps the rules allow only in this order: flag the group `deleting` (freezes every write
@@ -176,39 +202,32 @@ const DELETE_BATCH_SIZE = 400;
  * owner's membership goes last because the rules check it for every delete. A run on a group that is
  * already deleting resumes, skipping what an earlier run deleted (the invite code is read from the stored
  * group, never the caller's copy, which a rotation may have outdated); a run on a tombstone does nothing.
+ * The group is listed again before the tombstone, so a write whose rule check ran before the freeze but
+ * which landed after a listing is still deleted (W-02); the tombstone goes only on a pass that finds nothing.
  */
 export async function deleteGroup(group: Pick<Group, 'id'>, ownerUid: string): Promise<void> {
   const gid = group.id;
   const current = await readGroup(gid);
   if (current === null || 'deleted' in current) return;
   if (current.deleting !== true) await updateDoc(groupRef(gid), { deleting: true });
-  const list = (name: string) => getDocs(collection(db, 'groups', gid, name));
-  const [crews, events, members, invite] = await Promise.all([
-    list('crews'),
-    list('events'),
-    list('members'),
-    getDoc(inviteRef(current.inviteCode)),
-  ]);
-  const children = await Promise.all([
-    ...crews.docs.map((d) => getDocs(collection(d.ref, 'trips'))),
-    ...events.docs.map((d) => getDocs(collection(d.ref, 'cars'))),
-  ]);
-  const refs: DocumentReference[] = [
-    ...children.flatMap((snap) => snap.docs.map((d) => d.ref)),
-    ...crews.docs.map((d) => d.ref),
-    ...events.docs.map((d) => d.ref),
-    ...members.docs.filter((d) => d.id !== ownerUid).map((d) => d.ref),
-    ...(invite.exists() && invite.data().groupId === gid ? [invite.ref] : []),
-  ];
-  for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
-    const batch = writeBatch(db);
-    for (const ref of refs.slice(i, i + DELETE_BATCH_SIZE)) batch.delete(ref);
-    await batch.commit();
+  const invite = await getDoc(inviteRef(current.inviteCode));
+  const inviteRefs = invite.exists() && invite.data().groupId === gid ? [invite.ref] : [];
+  for (let pass = 0; pass < MAX_DELETE_PASSES; pass += 1) {
+    const refs = [...(await listGroupData(gid, ownerUid)), ...(pass === 0 ? inviteRefs : [])];
+    if (refs.length === 0) {
+      const last = writeBatch(db);
+      last.delete(memberRef(gid, ownerUid));
+      last.set(groupDocRef(gid), { id: gid, deleted: true, deletedAt: nowIso() });
+      await last.commit();
+      return;
+    }
+    for (let i = 0; i < refs.length; i += DELETE_BATCH_SIZE) {
+      const batch = writeBatch(db);
+      for (const ref of refs.slice(i, i + DELETE_BATCH_SIZE)) batch.delete(ref);
+      await batch.commit();
+    }
   }
-  const last = writeBatch(db);
-  last.delete(memberRef(gid, ownerUid));
-  last.set(groupDocRef(gid), { id: gid, deleted: true, deletedAt: nowIso() });
-  await last.commit();
+  throw new GroupDeleteIncompleteError(gid);
 }
 
 /** Admin action: issue a new code and retire the old one atomically. Returns the new code. */

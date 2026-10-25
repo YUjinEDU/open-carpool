@@ -1,4 +1,26 @@
+import type { RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { startEnv } from './fixtures';
+
+// One-shot hook that runs right after the next batch the app commits: a write landing between delete passes.
+const batchHook = vi.hoisted(() => ({ afterNextCommit: null as null | (() => Promise<void>) }));
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const real = await importOriginal<typeof import('firebase/firestore')>();
+  return {
+    ...real,
+    writeBatch: (...args: Parameters<typeof real.writeBatch>) => {
+      const batch = real.writeBatch(...args);
+      const commit = batch.commit.bind(batch);
+      batch.commit = async () => {
+        await commit();
+        const hook = batchHook.afterNextCommit;
+        batchHook.afterNextCommit = null;
+        if (hook) await hook();
+      };
+      return batch;
+    },
+  };
+});
 
 /**
  * End-to-end check of the src/data repositories against the emulators with the real rules:
@@ -22,6 +44,7 @@ const run = Math.random().toString(36).slice(2, 8);
 const PASSWORD = 'emulator-only-pw';
 const uids: Record<'ann' | 'ben', string> = { ann: '', ben: '' };
 const defaultNames: string[] = [];
+let rulesEnv: RulesTestEnvironment;
 
 async function become(name: 'ann' | 'ben'): Promise<string> {
   await signOut(auth);
@@ -30,6 +53,7 @@ async function become(name: 'ann' | 'ben'): Promise<string> {
 }
 
 beforeAll(async () => {
+  rulesEnv = await startEnv();
   for (const name of ['ann', 'ben'] as const) {
     const { user } = await createUserWithEmailAndPassword(auth, `${name}-${run}@example.com`, PASSWORD);
     uids[name] = user.uid;
@@ -39,6 +63,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await signOut(auth);
+  await rulesEnv.cleanup();
   vi.unstubAllEnvs();
 });
 
@@ -198,5 +223,26 @@ describe('repositories under security rules', () => {
     await groups.deleteGroup(group, ann);
     expect(await groups.readGroup(group.id)).toMatchObject({ deleted: true });
     expect(await members.getMember(group.id, ann)).toBeNull();
+  });
+
+  it('also deletes a crew and its trip written after the first delete pass (W-02)', async () => {
+    const { ann, group } = await groupWithMember('Late write');
+    const g = `groups/${group.id}`;
+    // A write whose rule check ran before the freeze but which committed after the first listing.
+    batchHook.afterNextCommit = () =>
+      rulesEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().doc(`${g}/crews/late`).set({ name: 'Late' });
+        await ctx.firestore().doc(`${g}/crews/late/trips/2026-10-27_out`).set({ date: '2026-10-27' });
+      });
+    await groups.deleteGroup(group, ann);
+    expect(batchHook.afterNextCommit).toBeNull(); // the late write did land between passes
+    expect(await groups.readGroup(group.id)).toMatchObject({ deleted: true });
+    let left: readonly boolean[] = [];
+    await rulesEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      const [crew, trip] = await Promise.all([db.doc(`${g}/crews/late`).get(), db.doc(`${g}/crews/late/trips/2026-10-27_out`).get()]);
+      left = [crew.exists, trip.exists];
+    });
+    expect(left).toEqual([false, false]);
   });
 });
