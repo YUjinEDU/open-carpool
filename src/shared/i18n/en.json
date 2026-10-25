@@ -79,6 +79,15 @@
     "body": "Its owner deleted the group with its crews, trips and events.",
     "home": "Go to My groups"
   },
+  "groupDeleting": {
+    "title": "This group is being deleted",
+    "ownerBody": "The delete did not finish, so the group is frozen. Finishing it removes the remaining crews, trips and events.",
+    "memberBody": "The owner is deleting this group, so nothing in it can change now. You can still leave it.",
+    "finish": "Finish deleting",
+    "finishBusy": "Deleting",
+    "leave": "Leave group",
+    "leaveBusy": "Leaving"
+  },
   "notFound": {
     "title": "This page does not exist",
     "home": "Go home"

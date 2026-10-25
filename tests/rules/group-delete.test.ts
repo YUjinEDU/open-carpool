@@ -115,6 +115,26 @@ describe('writes while the group is deleting', () => {
   });
 });
 
+describe('leaving while the group is deleting (W-01)', () => {
+  beforeEach(markDeleting);
+
+  it('lets a member or an admin leave', async () => {
+    await assertSucceeds(as('alice').doc(`${g}/members/alice`).update({ status: 'left' }));
+    await assertSucceeds(as('admin').doc(`${g}/members/admin`).update({ status: 'left' }));
+  });
+
+  it('denies a leave that changes anything else, the owner leaving, or leaving for someone else', async () => {
+    await assertFails(as('alice').doc(`${g}/members/alice`).update({ status: 'left', seats: 1 }));
+    await assertFails(as('owner').doc(`${g}/members/owner`).update({ status: 'left' }));
+    await assertFails(as('admin').doc(`${g}/members/alice`).update({ status: 'left' }));
+  });
+
+  it('denies a removed member turning their removal into a leave', async () => {
+    await bypass((db) => db.doc(`${g}/members/carol`).update({ status: 'removed' }));
+    await assertFails(as('carol').doc(`${g}/members/carol`).update({ status: 'left' }));
+  });
+});
+
 describe('owner deletes outside a group delete (V-03)', () => {
   it('denies deleting a settled trip, a planned trip or an active crew', async () => {
     await assertFails(as('owner').doc(`${g}/crews/${CID}/trips/${APPLIED_TRIP}`).delete());

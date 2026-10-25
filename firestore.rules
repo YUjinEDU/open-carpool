@@ -367,7 +367,7 @@ service cloud.firestore {
               && getAfter(groupPath(gid)).data.ownerId == me())
           );
 
-        allow update: if signedIn() && isOpen(gid) && unchanged(['uid', 'joinedAt']) && validMember(request.resource.data) && (
+        allow update: if signedIn() && unchanged(['uid', 'joinedAt']) && validMember(request.resource.data) && ((isOpen(gid) && (
           // Self edits while active. A member may leave (the owner may not: S-06), never restore a removal.
           (memberId == me()
             && resource.data.status == 'active'
@@ -393,6 +393,14 @@ service cloud.firestore {
               && transferAfterIsComplete(gid, me())
               && ((memberId == getAfter(groupPath(gid)).data.ownerId && request.resource.data.role == 'owner')
                   || (memberId == me() && request.resource.data.role == 'admin')))
+        ))
+          // W-01: a frozen group must not trap anyone. While it is deleting, a non-owner may still leave.
+          || (memberId == me()
+              && isDeleting(gid)
+              && onlyChanged(['status'])
+              && resource.data.status == 'active'
+              && request.resource.data.status == 'left'
+              && resource.data.role != 'owner')
         );
         allow delete: if isOwnerDeleting(gid);
       }

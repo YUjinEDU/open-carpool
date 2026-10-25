@@ -3,11 +3,12 @@ import { FirebaseError } from 'firebase/app';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useNavigate, useParams } from 'react-router';
 import { Trash2 } from 'lucide-react';
-import { readGroup, type GroupTombstone } from '../data/groups';
-import { getMember } from '../data/members';
-import type { Group } from '../domain/types';
+import { deleteGroup, readGroup, type GroupTombstone } from '../data/groups';
+import { getMember, leaveGroup } from '../data/members';
+import type { Group, Member } from '../domain/types';
 import { useLoad } from '../shared/lib/loadable';
-import { Button, EmptyState } from '../shared/ui';
+import { useAction } from '../shared/lib/useAction';
+import { Banner, Button, EmptyState } from '../shared/ui';
 import { LoadErrorState, LoadingState, NotFoundPage } from './fallbacks';
 import { NotMemberState } from './GroupLayoutNotMember';
 import { GroupContext, type GroupContextValue } from './providers/group';
@@ -38,6 +39,43 @@ function GroupDeletedState() {
         action={<Button onClick={() => navigate('/')}>{t('groupDeleted.home')}</Button>}
         data-testid="group-deleted"
       />
+    </PageBody>
+  );
+}
+
+/**
+ * A group stuck mid-delete (W-01): every write under it is frozen, so its pages would only fail. The owner
+ * can finish the delete (deleteGroup resumes); anyone else can still leave (firestore.rules allows it).
+ */
+function GroupDeletingState({ group, me }: { readonly group: Group; readonly me: Member }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const isOwner = group.ownerId === me.uid && me.role === 'owner';
+  const action = useAction(async () => {
+    if (isOwner) await deleteGroup(group, me.uid);
+    else await leaveGroup(group.id, me.uid);
+    navigate('/', { replace: true });
+  }, { report: 'inline' });
+  return (
+    <PageBody className="justify-center pt-16">
+      <EmptyState
+        icon={<Trash2 />}
+        title={t('groupDeleting.title')}
+        description={t(isOwner ? 'groupDeleting.ownerBody' : 'groupDeleting.memberBody')}
+        action={
+          <Button
+            variant={isOwner ? 'danger' : 'primary'}
+            loading={action.busy}
+            loadingLabel={t(isOwner ? 'groupDeleting.finishBusy' : 'groupDeleting.leaveBusy')}
+            onClick={() => action.run()}
+            data-testid={isOwner ? 'group-deleting-finish' : 'group-deleting-leave'}
+          >
+            {t(isOwner ? 'groupDeleting.finish' : 'groupDeleting.leave')}
+          </Button>
+        }
+        data-testid="group-deleting"
+      />
+      {action.error && <Banner variant="danger" className="mt-3">{action.error}</Banner>}
     </PageBody>
   );
 }
@@ -74,6 +112,7 @@ export function GroupLayout() {
     if (state.data.group === null && state.data.me?.status === 'active') return <NotFoundPage />;
     return <NotMemberState membership={state.data.me} />;
   }
+  if (value.group.deleting === true) return <GroupDeletingState group={value.group} me={value.me} />;
 
   return (
     <GroupContext.Provider value={value}>
