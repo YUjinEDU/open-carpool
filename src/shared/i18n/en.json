@@ -224,6 +224,7 @@
       "leaveAction": "Transfer and leave",
       "busy": "Transferring",
       "empty": "No other active member can take over. You can delete the group instead.",
+      "leaveFailed": "The transfer is done, but leaving failed. Try leaving again.",
       "done": "{{name}} is now the owner."
     },
     "deleteGroup": {

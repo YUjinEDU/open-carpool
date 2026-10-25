@@ -23,24 +23,39 @@ export function TransferOwnershipSheet({ open, onClose, leaveAfter }: TransferOw
   const { group, me, refresh } = useGroup();
   const [members] = useMembers(group.id);
   const [picked, setPicked] = useState<string | null>(null);
+  // Leave mode runs two writes: once the transfer went through, a retry only leaves (V-05).
+  const [handedOver, setHandedOver] = useState(false);
+  const [leaveFailed, setLeaveFailed] = useState(false);
+  const stillOwner = group.ownerId === me.uid && !handedOver;
   const candidates = members.status === 'ready' ? members.data.filter((m) => m.status === 'active' && m.uid !== me.uid) : [];
   const pickedName = candidates.find((m) => m.uid === picked)?.displayName ?? '';
   const close = () => {
     setPicked(null);
+    setHandedOver(false);
+    setLeaveFailed(false);
     transfer.clearError();
     onClose();
   };
   const transfer = useAction(async () => {
-    if (picked === null) return;
-    await transferOwnership(group.id, me.uid, picked);
-    showToast(t('settings.transfer.done', { name: pickedName }), 'success');
-    if (leaveAfter) {
-      await leaveGroup(group.id, me.uid);
-      navigate('/', { replace: true });
-      return;
+    if (stillOwner) {
+      if (picked === null) return;
+      await transferOwnership(group.id, me.uid, picked);
+      setHandedOver(true);
+      showToast(t('settings.transfer.done', { name: pickedName }), 'success');
+      refresh();
+      if (!leaveAfter) {
+        close();
+        return;
+      }
     }
-    close();
-    refresh();
+    setLeaveFailed(false);
+    try {
+      await leaveGroup(group.id, me.uid);
+    } catch (e) {
+      setLeaveFailed(true);
+      throw e;
+    }
+    navigate('/', { replace: true });
   }, { report: 'inline' });
 
   return (
@@ -55,13 +70,13 @@ export function TransferOwnershipSheet({ open, onClose, leaveAfter }: TransferOw
           fullWidth
           size="lg"
           variant={leaveAfter ? 'danger' : 'primary'}
-          disabled={picked === null}
+          disabled={stillOwner && picked === null}
           loading={transfer.busy}
           loadingLabel={t('settings.transfer.busy')}
           onClick={() => transfer.run()}
           data-testid="transfer-confirm"
         >
-          {leaveAfter ? t('settings.transfer.leaveAction') : t('settings.transfer.action')}
+          {!stillOwner ? t('nav.leaveGroupAction') : leaveAfter ? t('settings.transfer.leaveAction') : t('settings.transfer.action')}
         </Button>
       }
     >
@@ -84,7 +99,13 @@ export function TransferOwnershipSheet({ open, onClose, leaveAfter }: TransferOw
           ))}
         </List>
       )}
-      {transfer.error && <Banner variant="danger" className="mt-3">{transfer.error}</Banner>}
+      {transfer.error && (leaveFailed ? (
+        <Banner variant="danger" className="mt-3" title={t('settings.transfer.leaveFailed')} data-testid="transfer-leave-error">
+          {transfer.error}
+        </Banner>
+      ) : (
+        <Banner variant="danger" className="mt-3">{transfer.error}</Banner>
+      ))}
     </Sheet>
   );
 }
