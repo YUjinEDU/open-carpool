@@ -2,6 +2,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import geocode from './geocode';
+import { resetRateLimit } from './_ratelimit';
 import reverseGeocode from './reverse-geocode';
 
 /**
@@ -14,12 +15,13 @@ const b64 = (v: unknown) => Buffer.from(JSON.stringify(v)).toString('base64url')
 const now = () => Math.floor(Date.now() / 1000);
 const TOKEN = `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ iss: `https://securetoken.google.com/${PROJECT}`, aud: PROJECT, sub: 'u1', iat: now() - 5, exp: now() + 3600 })}.`;
 
-interface Captured { status: number; body: unknown }
+interface Captured { status: number; body: unknown; headers: Record<string, string> }
 
 function call(handler: (req: VercelRequest, res: VercelResponse) => unknown, query: Record<string, string | string[]>, headers: Record<string, string> = {}) {
-  const captured: Captured = { status: 0, body: undefined };
+  const captured: Captured = { status: 0, body: undefined, headers: {} };
   const res = {
     status(code: number) { captured.status = code; return res; },
+    setHeader(name: string, value: string) { captured.headers[name] = value; return res; },
     json(body: unknown) { captured.body = body; return res; },
   };
   const req = { query, headers: { origin: ORIGIN, ...headers } };
@@ -36,6 +38,7 @@ beforeEach(() => {
   vi.stubEnv('FIREBASE_PROJECT_ID', PROJECT);
   vi.stubEnv('FIREBASE_AUTH_EMULATOR_HOST', '127.0.0.1:9099');
   vi.stubEnv('ALLOW_EMULATOR_ID_TOKENS', 'true');
+  resetRateLimit();
   upstream.mockReset();
   upstream.mockImplementation(async () => new Response(JSON.stringify({ addresses: [] }), { status: 200 }));
   vi.stubGlobal('fetch', upstream);
@@ -68,6 +71,18 @@ describe('auth gate', () => {
     const r = await call(geocode, { query: 'Daejeon' }, authed);
     expect(r.status).toBe(200);
     expect(String(upstream.mock.calls[0]?.[0])).toContain('query=Daejeon');
+  });
+});
+
+describe('rate limit', () => {
+  it('answers 429 with Retry-After on call N+1 without calling Naver', async () => {
+    vi.stubEnv('NAVER_RATE_LIMIT', '2');
+    expect((await call(geocode, { query: 'Daejeon' }, authed)).status).toBe(200);
+    expect((await call(reverseGeocode, { coords: '127.3,36.3' }, authed)).status).toBe(200);
+    const r = await call(geocode, { query: 'Daejeon' }, authed);
+    expect(r.status).toBe(429);
+    expect(Number(r.headers['Retry-After'])).toBeGreaterThan(0);
+    expect(upstream).toHaveBeenCalledTimes(2);
   });
 });
 

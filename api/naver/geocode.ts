@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireUser } from './_auth';
 import { checkOrigin } from './_cors';
 import { proxyNaver } from './_naver';
+import { enforceRateLimit } from './_ratelimit';
 
 const MAX_QUERY_LENGTH = 200;
 
@@ -14,7 +15,8 @@ export function parseQuery(value: unknown): string | null {
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   if (!checkOrigin(req, res)) return;
-  if (!(await requireUser(req, res))) return;
+  const user = await requireUser(req, res);
+  if (!user || !enforceRateLimit(req, res, user.uid)) return;
   const query = parseQuery(req.query.query);
   if (query === null) {
     res.status(400).json({ error: `query must be 1..${MAX_QUERY_LENGTH} characters` });
