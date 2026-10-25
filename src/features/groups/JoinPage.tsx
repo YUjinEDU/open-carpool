@@ -62,7 +62,8 @@ export function JoinPage() {
               <h2 className="mt-1 text-title-1 text-ink" data-testid="join-group-name">
                 {linkedName || t('join.title')}
               </h2>
-              <p className="mt-2 text-body text-ink-2">{linkedName ? t('join.invitedTo', { name: linkedName }) : t('join.invitedGeneric')}</p>
+              {/* The name is the heading already; the sentence says what joining gives, not the name again. */}
+              <p className="mt-2 text-body text-ink-2">{linkedName ? t('ux2.join.whatYouGet') : t('join.invitedGeneric')}</p>
               <p className="mt-1 text-sub text-ink-2">{t('join.signInToJoin')}</p>
             </Card>
             <Card padding="lg">
@@ -95,7 +96,7 @@ export function JoinPage() {
               <h2 className="mt-1 text-title-1 text-ink" data-testid="join-group-name">
                 {invite.data.found.groupName}
               </h2>
-              <p className="mt-2 text-body text-ink-2">{t('join.invitedTo', { name: invite.data.found.groupName })}</p>
+              <p className="mt-2 text-body text-ink-2">{t('ux2.join.whatYouGet')}</p>
             </div>
             {invite.data.membership?.status === 'active' ? (
               <Banner variant="info" title={t('join.alreadyMember')} data-testid="join-already-member" action={<Button variant="secondary" onClick={() => navigate(`/g/${invite.data?.found?.groupId ?? ''}`, { replace: true })}>{t('join.goToGroup')}</Button>}>

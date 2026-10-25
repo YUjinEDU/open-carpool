@@ -103,6 +103,9 @@
       "title": "You are not a member of this group",
       "hint": "Open an invite link or enter an invite code.",
       "myGroups": "Go to my groups"
+    },
+    "join": {
+      "whatYouGet": "Once you join you can see the crews, their schedules and the members."
     }
   }
 }
