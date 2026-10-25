@@ -37,11 +37,13 @@ export function readConfig(env: RawEnv): AppConfig {
   const useFirebaseEmulator = flag(env, 'VITE_USE_FIREBASE_EMULATOR');
   const projectId = text(env, 'VITE_FIREBASE_PROJECT_ID');
   const apiKey = text(env, 'VITE_FIREBASE_API_KEY');
+  const authDomain = text(env, 'VITE_FIREBASE_AUTH_DOMAIN');
+  const resolvedProjectId = projectId || (useFirebaseEmulator ? EMULATOR_PROJECT_ID : '');
   return {
     firebase: {
       apiKey: apiKey || (useFirebaseEmulator ? EMULATOR_API_KEY : ''),
-      authDomain: text(env, 'VITE_FIREBASE_AUTH_DOMAIN'),
-      projectId: projectId || (useFirebaseEmulator ? EMULATOR_PROJECT_ID : ''),
+      authDomain: authDomain || (useFirebaseEmulator ? resolvedProjectId + '.firebaseapp.com' : ''),
+      projectId: resolvedProjectId,
       appId: text(env, 'VITE_FIREBASE_APP_ID'),
     },
     useFirebaseEmulator,

@@ -7,6 +7,7 @@ describe('readConfig', () => {
     expect(cfg.useFirebaseEmulator).toBe(true);
     expect(cfg.firebase.projectId).toBe(EMULATOR_PROJECT_ID);
     expect(cfg.firebase.apiKey).toBe('demo-key');
+    expect(cfg.firebase.authDomain).toBe(EMULATOR_PROJECT_ID + '.firebaseapp.com');
   });
 
   it('keeps explicit values and leaves defaults off outside emulator mode', () => {
