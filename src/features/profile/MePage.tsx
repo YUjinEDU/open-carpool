@@ -12,7 +12,6 @@ import type { Locale } from '../../domain/types';
 import { LOCALES, setLocale as applyLocale } from '../../shared/i18n';
 import { describeError, useAction } from '../../shared/lib/useAction';
 import { Avatar, Button, Card, CardHeader, Input, SegmentedControl, Switch, TopBar, showToast } from '../../shared/ui';
-import { patchProfile } from '../../data/users';
 import { signOut } from '../auth/authService';
 
 /** Account settings shared by every group: name, language, theme, reminders, sign out. */
@@ -20,7 +19,7 @@ export function MePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const back = useBack('/');
-  const { rename } = useAuth();
+  const { rename, patchProfile } = useAuth();
   const { profile } = useSession();
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [locale, setLocaleState] = useState<Locale>(profile.locale);
@@ -40,7 +39,7 @@ export function MePage() {
       // The account name is the one name: every membership follows it.
       await rename(name);
       // rename writes the session's profile copy, whose locale predates the field patches: put the choice back.
-      await patchProfile(profile.uid, { locale: chosenLocale.current });
+      await patchProfile({ locale: chosenLocale.current });
     }
     showToast(t('common.saved'), 'success');
   });
@@ -69,7 +68,7 @@ export function MePage() {
     applyLocale(next);
     localeSaves.current = localeSaves.current
       .then(async () => {
-        await patchProfile(profile.uid, { locale: next });
+        await patchProfile({ locale: next });
         savedLocale.current = next;
       })
       .catch((e: unknown) => {

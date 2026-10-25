@@ -2,7 +2,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { showToast } from '../../shared/ui';
 import { setDisplayNameEverywhere } from '../../data/members';
-import { upsertProfile } from '../../data/users';
+import { patchProfile as writeProfileFields, upsertProfile } from '../../data/users';
 import type { UserProfile } from '../../domain/types';
 import { ensureUserProfile, onAuthChange } from '../../features/auth/authService';
 import { describeError } from '../../shared/lib/useAction';
@@ -13,9 +13,13 @@ export interface AuthContextValue {
   readonly profile: UserProfile | null;
   readonly loading: boolean;
   readonly saveProfile: (profile: UserProfile) => Promise<void>;
+  /** Write only these profile fields to Firestore and mirror them in the session profile. */
+  readonly patchProfile: (fields: ProfileFields) => Promise<void>;
   /** Set the display name on the account and on every active membership (one name everywhere). */
   readonly rename: (displayName: string) => Promise<void>;
 }
+
+type ProfileFields = Parameters<typeof writeProfileFields>[1];
 
 interface AuthState {
   readonly user: User | null;
@@ -52,6 +56,16 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     setState((s) => (s.user?.uid === profile.uid ? { ...s, profile } : s));
   }, []);
 
+  const uid = state.user?.uid;
+  const patchProfile = useCallback(
+    async (fields: ProfileFields) => {
+      if (!uid) throw new Error('patchProfile needs a signed-in user');
+      await writeProfileFields(uid, fields);
+      setState((s) => (s.user?.uid === uid && s.profile ? { ...s, profile: { ...s.profile, ...fields } } : s));
+    },
+    [uid],
+  );
+
   const rename = useCallback(
     async (displayName: string) => {
       const current = state.profile;
@@ -62,7 +76,7 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     [state.profile, saveProfile],
   );
 
-  const value = useMemo(() => ({ ...state, saveProfile, rename }), [state, saveProfile, rename]);
+  const value = useMemo(() => ({ ...state, saveProfile, patchProfile, rename }), [state, saveProfile, patchProfile, rename]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
