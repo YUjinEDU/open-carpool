@@ -14,6 +14,8 @@ export interface AppConfig {
   readonly naverClientId: string;
   readonly googleMapsApiKey: string;
   readonly kakaoJsKey: string;
+  /** reCAPTCHA Enterprise site key; empty disables Firebase App Check. */
+  readonly appCheckSiteKey: string;
 }
 
 export const EMULATOR_PROJECT_ID = 'demo-open-carpool';
@@ -47,6 +49,7 @@ export function readConfig(env: RawEnv): AppConfig {
     naverClientId: text(env, 'VITE_NAVER_CLIENT_ID'),
     googleMapsApiKey: text(env, 'VITE_GOOGLE_MAPS_API_KEY'),
     kakaoJsKey: text(env, 'VITE_KAKAO_JS_KEY'),
+    appCheckSiteKey: text(env, 'VITE_APPCHECK_SITE_KEY'),
   };
 }
 

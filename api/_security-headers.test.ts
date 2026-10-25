@@ -42,4 +42,11 @@ describe('security headers', () => {
     expect(policy.get('script-src')).toEqual(expect.arrayContaining(['https://apis.google.com', 'https://maps.googleapis.com']));
     expect(policy.get('frame-src')).toEqual(expect.arrayContaining(['https://*.firebaseapp.com']));
   });
+
+  it('allows what reCAPTCHA Enterprise App Check loads', () => {
+    const policy = csp();
+    expect(policy.get('script-src')).toEqual(expect.arrayContaining(['https://www.google.com', 'https://www.gstatic.com']));
+    expect(policy.get('frame-src')).toEqual(expect.arrayContaining(['https://www.google.com']));
+    expect(policy.get('connect-src')).toEqual(expect.arrayContaining(['https://content-firebaseappcheck.googleapis.com']));
+  });
 });
