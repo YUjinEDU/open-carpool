@@ -9,6 +9,7 @@ import { CID, GID, TRIP, seed, startEnv, trip } from './fixtures';
 let env: RulesTestEnvironment;
 const as = (uid: string) => env.authenticatedContext(uid).firestore();
 const SATURDAY = '2026-10-31_out';
+const SUNDAY = '2026-11-01_out';
 const tripDoc = (uid: string, id = TRIP) => as(uid).doc(`groups/${GID}/crews/${CID}/trips/${id}`);
 const replan = (uid: string, id = TRIP) => tripDoc(uid, id).update({ driverId: 'bob', riderIds: ['alice'] });
 
@@ -18,6 +19,7 @@ async function setPlate(rotation: string, digit: number | null): Promise<void> {
     await db.doc(`groups/${GID}`).update({ 'policy.plateRotation': rotation });
     await db.doc(`groups/${GID}/members/alice`).update({ plateLastDigit: digit });
     await db.doc(`groups/${GID}/crews/${CID}/trips/${SATURDAY}`).set(trip('2026-10-31'));
+    await db.doc(`groups/${GID}/crews/${CID}/trips/${SUNDAY}`).set(trip('2026-11-01'));
   });
 }
 
@@ -41,7 +43,17 @@ describe('plate rotation replan', () => {
     await assertFails(replan('bob'));
     await setPlate('five-day', 7);
     await assertFails(replan('bob'));
+  });
+
+  it('denies replacing a five-day driver on the weekend, when no plate is barred', async () => {
+    // 1 % 5 == Saturday (6) % 5 and 2 % 5 == Sunday (7) % 5: only the weekday clause lets them drive.
+    await setPlate('five-day', 1);
     await assertFails(replan('bob', SATURDAY));
+    await setPlate('five-day', 2);
+    await assertFails(replan('bob', SUNDAY));
+  });
+
+  it('denies replacing a driver whose plate rule is off or unset', async () => {
     await setPlate('none', 1);
     await assertFails(replan('bob'));
     await setPlate('odd-even', null);
