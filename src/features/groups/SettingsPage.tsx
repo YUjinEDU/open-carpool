@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
-import { RefreshCw, X } from 'lucide-react';
+import { ArrowRightLeft, RefreshCw, Trash2, X } from 'lucide-react';
 import { useGroup } from '../../app/providers/group';
 import { useSession } from '../../app/providers/session';
 import { InviteShare } from '../../app/shell/InviteShare';
@@ -13,9 +13,11 @@ import { useAction } from '../../shared/lib/useAction';
 import { Badge, Button, Card, CardHeader, Dialog, EmptyState, IconButton, Input, Select, TopBar } from '../../shared/ui';
 import type { Place } from '../map/geocoder';
 import { PlaceSearch } from '../map/PlaceSearch';
+import { DeleteGroupDialog } from './DeleteGroupDialog';
 import { GroupBasicsFields, type GroupBasics } from './GroupBasicsFields';
 import { LegalNotice } from './LegalNotice';
 import { COST_MODES, parseEmailDomains, PLATE_ROTATIONS } from './options';
+import { TransferOwnershipSheet } from './TransferOwnershipSheet';
 
 const isCostMode = (v: string): v is CostMode => COST_MODES.some((m) => m === v);
 const isPlateRotation = (v: string): v is PlateRotation => PLATE_ROTATIONS.some((r) => r === v);
@@ -46,7 +48,7 @@ function SavedBadge({ saved }: { readonly saved: boolean }) {
 export function SettingsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { group, isAdmin } = useGroup();
+  const { group, me, isAdmin } = useGroup();
   const back = useBack(`/g/${group.id}`);
   return (
     <>
@@ -58,6 +60,7 @@ export function SettingsPage() {
             <BasicsCard />
             <PolicyCard />
             <DomainsCard />
+            {me.role === 'owner' && <OwnerCard />}
           </>
         ) : (
           <EmptyState
@@ -69,6 +72,25 @@ export function SettingsPage() {
         )}
       </PageBody>
     </>
+  );
+}
+
+function OwnerCard() {
+  const { t } = useTranslation();
+  const [transferring, setTransferring] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  return (
+    <Card as="section" className="flex flex-col gap-3">
+      <CardHeader title={t('settings.owner.title')} description={t('settings.owner.description')} />
+      <Button variant="secondary" leadingIcon={<ArrowRightLeft />} className="self-start" onClick={() => setTransferring(true)} data-testid="owner-transfer">
+        {t('settings.owner.transfer')}
+      </Button>
+      <Button variant="ghost" leadingIcon={<Trash2 />} className="self-start text-danger-ink" onClick={() => setDeleting(true)} data-testid="owner-delete-group">
+        {t('settings.owner.delete')}
+      </Button>
+      <TransferOwnershipSheet open={transferring} onClose={() => setTransferring(false)} leaveAfter={false} />
+      <DeleteGroupDialog open={deleting} onClose={() => setDeleting(false)} />
+    </Card>
   );
 }
 

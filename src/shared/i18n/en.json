@@ -203,7 +203,33 @@
     "domainsEmpty": "No allowed domains yet.",
     "cutoffOption": "{{hour}}:00",
     "saving": "Saving",
-    "backToGroup": "Go to group"
+    "backToGroup": "Go to group",
+    "owner": {
+      "title": "Owner",
+      "description": "Only the group owner can do this.",
+      "transfer": "Transfer ownership",
+      "delete": "Delete group"
+    },
+    "transfer": {
+      "title": "Who should own this group?",
+      "body": "The member you pick becomes the owner and you stay on as an admin.",
+      "leaveTitle": "Hand over ownership before you leave",
+      "leaveBody": "The member you pick becomes the owner, then you leave the group.",
+      "action": "Transfer",
+      "leaveAction": "Transfer and leave",
+      "busy": "Transferring",
+      "empty": "No other active member can take over. You can delete the group instead.",
+      "done": "{{name}} is now the owner."
+    },
+    "deleteGroup": {
+      "title": "Delete this group?",
+      "body": "Crews, trip history, events and members are all deleted. This cannot be undone.",
+      "confirmLabel": "Type the group name to confirm",
+      "confirmHint": "Group name: {{name}}",
+      "action": "Delete",
+      "busy": "Deleting",
+      "done": "Group deleted."
+    }
   },
   "costMode": {
     "rotation": "Driving rotation (no money)",
@@ -416,7 +442,8 @@
     "resume": "Resume crew",
     "paused": "Crew paused.",
     "resumed": "Crew resumed.",
-    "pausing": "Working"
+    "pausing": "Working",
+    "saved": "Crew settings saved."
   },
   "crewForm": {
     "name": "Crew name",
@@ -439,7 +466,11 @@
     },
     "membersHint": "2 to 6 including you, at least one driver",
     "errorTitle": "Please check",
-    "creating": "Proposing"
+    "creating": "Proposing",
+    "editTitle": "Crew settings",
+    "save": "Save changes",
+    "saving": "Saving",
+    "editHint": "Crew members stay the same."
   },
   "crew": {
     "title": "Crew",
@@ -486,7 +517,8 @@
     "droveCount": "Drove {{count}} times in 4 weeks",
     "statRateHint": "share of past trips completed",
     "statNone": "-",
-    "pausedNote": "Paused. Resume to continue planning."
+    "pausedNote": "Paused. Resume to continue planning.",
+    "edit": "Edit settings"
   },
   "trip": {
     "leg": {

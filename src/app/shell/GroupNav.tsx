@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
-import { BarChart3, CalendarDays, CircleUserRound, Home, LayoutGrid, LogOut, Menu, Settings, UserRound, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, CircleUserRound, Home, LayoutGrid, LogOut, Menu, Settings, Trash2, UserRound, Users } from 'lucide-react';
 import { leaveGroup } from '../../data/members';
 import { addDays, today } from '../../domain/dates';
 import { useCrews } from '../../features/crews/hooks';
+import { DeleteGroupDialog } from '../../features/groups/DeleteGroupDialog';
+import { TransferOwnershipSheet } from '../../features/groups/TransferOwnershipSheet';
 import { GROUP_TZ, PLAN_DAYS, useTrips } from '../../features/trips/hooks';
 import { useAction } from '../../shared/lib/useAction';
 import { BottomNav, Button, Dialog, List, ListItem, Sheet, type BottomNavItem } from '../../shared/ui';
@@ -50,6 +52,8 @@ export function GroupNav() {
   const { group, me, isAdmin } = useGroup();
   const [more, setMore] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [ownerSheet, setOwnerSheet] = useState<'none' | 'transfer' | 'delete'>('none');
+  const isOwner = me.role === 'owner';
   const base = `/g/${group.id}`;
   const active = activeTab(pathname.startsWith(base) ? pathname.slice(base.length) : '');
   const crews = useCrews(group.id);
@@ -125,12 +129,29 @@ export function GroupNav() {
               data-testid={row.testId}
             />
           ))}
-          {me.role !== 'owner' && (
+          <ListItem
+            leading={<LogOut aria-hidden="true" className="size-5 text-danger-ink" />}
+            title={<span className="text-danger-ink">{t('nav.leaveGroup')}</span>}
+            onClick={() => {
+              // The owner hands the group over first (rules keep the owner from leaving).
+              if (isOwner) {
+                setMore(false);
+                setOwnerSheet('transfer');
+              } else {
+                setLeaving(true);
+              }
+            }}
+            data-testid="nav-leave-group"
+          />
+          {isOwner && (
             <ListItem
-              leading={<LogOut aria-hidden="true" className="size-5 text-danger-ink" />}
-              title={<span className="text-danger-ink">{t('nav.leaveGroup')}</span>}
-              onClick={() => setLeaving(true)}
-              data-testid="nav-leave-group"
+              leading={<Trash2 aria-hidden="true" className="size-5 text-danger-ink" />}
+              title={<span className="text-danger-ink">{t('settings.owner.delete')}</span>}
+              onClick={() => {
+                setMore(false);
+                setOwnerSheet('delete');
+              }}
+              data-testid="nav-delete-group"
             />
           )}
         </List>
@@ -152,6 +173,12 @@ export function GroupNav() {
           </>
         }
       />
+      {isOwner && (
+        <>
+          <TransferOwnershipSheet open={ownerSheet === 'transfer'} onClose={() => setOwnerSheet('none')} leaveAfter />
+          <DeleteGroupDialog open={ownerSheet === 'delete'} onClose={() => setOwnerSheet('none')} />
+        </>
+      )}
     </>
   );
 }

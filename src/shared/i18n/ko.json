@@ -203,7 +203,33 @@
     "domainsEmpty": "아직 허용 도메인이 없어요.",
     "cutoffOption": "{{hour}}:00",
     "saving": "저장 중",
-    "backToGroup": "그룹으로 가기"
+    "backToGroup": "그룹으로 가기",
+    "owner": {
+      "title": "소유자",
+      "description": "그룹 소유자만 할 수 있어요.",
+      "transfer": "소유권 넘기기",
+      "delete": "그룹 삭제"
+    },
+    "transfer": {
+      "title": "누구에게 소유권을 넘길까요?",
+      "body": "고른 멤버가 소유자가 되고, 나는 관리자로 남아요.",
+      "leaveTitle": "나가기 전에 소유권을 넘겨 주세요",
+      "leaveBody": "고른 멤버가 소유자가 된 뒤 그룹에서 나가요.",
+      "action": "넘기기",
+      "leaveAction": "넘기고 나가기",
+      "busy": "넘기는 중",
+      "empty": "넘겨받을 다른 멤버가 없어요. 대신 그룹을 삭제할 수 있어요.",
+      "done": "{{name}} 님이 이제 소유자예요."
+    },
+    "deleteGroup": {
+      "title": "이 그룹을 삭제할까요?",
+      "body": "크루, 운행 기록, 이벤트, 멤버가 모두 지워지고 되돌릴 수 없어요.",
+      "confirmLabel": "확인하려면 그룹 이름을 그대로 적어 주세요",
+      "confirmHint": "그룹 이름: {{name}}",
+      "action": "삭제하기",
+      "busy": "삭제하는 중",
+      "done": "그룹을 삭제했어요."
+    }
   },
   "costMode": {
     "rotation": "운전 순번 (금전 없음)",
@@ -416,7 +442,8 @@
     "resume": "크루 다시 시작",
     "paused": "크루를 일시정지했어요.",
     "resumed": "크루를 다시 시작했어요.",
-    "pausing": "처리 중"
+    "pausing": "처리 중",
+    "saved": "크루 설정을 저장했어요."
   },
   "crewForm": {
     "name": "크루 이름",
@@ -439,7 +466,11 @@
     },
     "membersHint": "나를 포함해 2-6명, 운전 가능한 멤버 1명 이상",
     "errorTitle": "확인해 주세요",
-    "creating": "제안하는 중"
+    "creating": "제안하는 중",
+    "editTitle": "크루 설정",
+    "save": "변경 저장",
+    "saving": "저장하는 중",
+    "editHint": "멤버 구성은 바뀌지 않아요."
   },
   "crew": {
     "title": "크루 상세",
@@ -486,7 +517,8 @@
     "droveCount": "최근 4주 {{count}}회 운전",
     "statRateHint": "지난 운행 중 완료한 비율",
     "statNone": "-",
-    "pausedNote": "일시정지 중이에요. 다시 시작하면 운행 계획이 이어져요."
+    "pausedNote": "일시정지 중이에요. 다시 시작하면 운행 계획이 이어져요.",
+    "edit": "설정 편집"
   },
   "trip": {
     "leg": {
