@@ -142,6 +142,8 @@ export function csvFilename(groupName: string, month: string): string {
 
 /** Words for the enum columns, in the reader's language: the file goes to an institution, not to a parser. */
 export interface CsvLabels {
+  /** Header words, in column order's keys; the header row speaks the same language as the values. */
+  readonly columns: Readonly<Record<CsvColumnKey, string>>;
   readonly leg: Readonly<Record<Leg, string>>;
   readonly status: Readonly<Record<TripStatus, string>>;
 }
@@ -153,8 +155,9 @@ export interface CsvInput {
   readonly labels: CsvLabels;
 }
 
-const BASE_COLUMNS: readonly CsvColumn[] = ['date', 'leg', 'crew', 'driver', 'riders', 'absent', 'status', 'completedBy', 'completedAt'].map((key) => ({ key, header: key }));
-const COST_COLUMNS: readonly CsvColumn[] = ['cost', 'currency'].map((key) => ({ key, header: key }));
+const BASE_KEYS = ['date', 'leg', 'crew', 'driver', 'riders', 'absent', 'status', 'completedBy', 'completedAt'] as const;
+const COST_KEYS = ['cost', 'currency'] as const;
+export type CsvColumnKey = (typeof BASE_KEYS)[number] | (typeof COST_KEYS)[number];
 const LEG_ORDER = { out: 0, back: 1 } as const;
 
 /** Every trip of every crew, sorted by date, leg and crew; member ids become display names, enums become words. */
@@ -177,5 +180,7 @@ export function tripsCsv({ crews, members, moneyEnabled, labels }: CsvInput): st
       cost: trip.cost?.totalAmount ?? null,
       currency: trip.cost?.currency ?? null,
     }));
-  return toCsv(rows, moneyEnabled ? [...BASE_COLUMNS, ...COST_COLUMNS] : BASE_COLUMNS, { bom: true });
+  const keys: readonly CsvColumnKey[] = moneyEnabled ? [...BASE_KEYS, ...COST_KEYS] : BASE_KEYS;
+  const columns: CsvColumn[] = keys.map((key) => ({ key, header: labels.columns[key] }));
+  return toCsv(rows, columns, { bom: true });
 }

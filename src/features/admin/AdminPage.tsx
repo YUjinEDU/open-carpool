@@ -214,6 +214,19 @@ function ExportCard({ group, members, crews, month, label }: ExportProps) {
   const { busy, run } = useAction(async () => {
     // The institution reads the file: legs and statuses are the screen's words, not the stored enums.
     const labels: CsvLabels = {
+      columns: {
+        date: t('ux2.dashboard.csv.date'),
+        leg: t('ux2.dashboard.csv.leg'),
+        crew: t('ux2.dashboard.csv.crew'),
+        driver: t('ux2.dashboard.csv.driver'),
+        riders: t('ux2.dashboard.csv.riders'),
+        absent: t('ux2.dashboard.csv.absent'),
+        status: t('ux2.dashboard.csv.status'),
+        completedBy: t('ux2.dashboard.csv.completedBy'),
+        completedAt: t('ux2.dashboard.csv.completedAt'),
+        cost: t('ux2.dashboard.csv.cost'),
+        currency: t('ux2.dashboard.csv.currency'),
+      },
       leg: { out: t('trip.leg.out'), back: t('trip.leg.back') },
       status: { planned: t('trip.status.planned'), needs_driver: t('trip.status.needs_driver'), done: t('trip.status.done'), cancelled: t('trip.status.cancelled') },
     };

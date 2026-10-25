@@ -5,6 +5,7 @@ import { CO2_KG_PER_KM, crewRows, csvFilename, dashboardRanges, groupStats, mont
 const TODAY = '2026-10-24';
 const OCT = monthRange('2026-10');
 const KO_LABELS: CsvLabels = {
+  columns: { date: '날짜', leg: '구간', crew: '크루', driver: '운전자', riders: '탑승자', absent: '결석', status: '상태', completedBy: '완료자', completedAt: '완료 시각', cost: '비용', currency: '통화' },
   leg: { out: '출발', back: '귀가' },
   status: { planned: '예정', needs_driver: '운전자 필요', done: '완료', cancelled: '취소' },
 };
@@ -168,7 +169,7 @@ describe('tripsCsv', () => {
 
   it('starts with a BOM and the header row, then rows by date, leg and crew with names and localized words', () => {
     const lines = tripsCsv({ crews, members, moneyEnabled: false, labels: KO_LABELS }).split('\r\n');
-    expect(lines[0]).toBe('\uFEFFdate,leg,crew,driver,riders,absent,status,completedBy,completedAt');
+    expect(lines[0]).toBe('\uFEFF날짜,구간,크루,운전자,탑승자,결석,상태,완료자,완료 시각');
     expect(lines.slice(1, 4)).toEqual([
       '2026-10-02,출발,Alpha,A,,B,완료,A,2026-10-02T09:00:00Z',
       '2026-10-02,출발,Zeta,A,B,,완료,A,2026-10-02T09:00:00Z',
@@ -188,7 +189,7 @@ describe('tripsCsv', () => {
   it('adds cost columns only when money features are enabled', () => {
     const paid: CrewTrips[] = [{ crew: crew('x'), trips: [trip('2026-10-02', { cost: { totalAmount: 12, currency: 'USD' } })] }];
     const lines = tripsCsv({ crews: paid, members, moneyEnabled: true, labels: KO_LABELS }).split('\r\n');
-    expect(lines[0]?.endsWith(',cost,currency')).toBe(true);
+    expect(lines[0]?.endsWith(',비용,통화')).toBe(true);
     expect(lines[1]?.endsWith(',12,USD')).toBe(true);
   });
 });

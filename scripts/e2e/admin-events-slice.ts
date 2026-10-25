@@ -12,7 +12,8 @@ const VIEWPORT = process.env.E2E_VIEWPORT === 'desktop' ? { name: 'desktop', w: 
 const OUT = join(import.meta.dir, '..', '..', '.omo', 'qa', 'admin-events', VIEWPORT.name);
 const JAVA_HOME = 'C:\\Users\\sdlab\\.cache\\open-carpool-tools\\jdk-21.0.12.1+1-jre';
 const PORTS = [5173, 8080, 9099] as const;
-const CSV_HEADER = 'date,leg,crew,driver,riders,absent,status,completedBy,completedAt';
+// The header speaks the exporter's language, like the leg and status values (column order is fixed).
+const CSV_HEADERS = { ko: '날짜,구간,크루,운전자,탑승자,결석,상태,완료자,완료 시각', en: 'Date,Leg,Crew,Driver,Riders,Absent,Status,Completed by,Completed at' } as const;
 
 const pathKey = Object.keys(process.env).find((k) => k.toLowerCase() === 'path') ?? 'PATH';
 process.env[pathKey] = `${JAVA_HOME}\\bin;${process.env[pathKey] ?? ''}`;
@@ -205,7 +206,8 @@ async function main(): Promise<void> {
       const text = new TextDecoder().decode(new Uint8Array(bytes));
       const lines = text.split('\r\n');
       if (!bom) throw new Error('CSV has no UTF-8 BOM');
-      if (lines[0] !== CSV_HEADER) throw new Error(`unexpected header: ${lines[0]}`);
+      const csvHeader = CSV_HEADERS[(await isKo(a)) ? 'ko' : 'en'];
+      if (lines[0] !== csvHeader) throw new Error(`unexpected header: ${lines[0]}`);
       // Leg and status columns carry the screen's words (trip.leg.out / trip.status.done), not the stored enums.
       const [legOut, done] = (await isKo(a)) ? ['출발', '완료'] : ['Leave', 'Done'];
       const row = lines.find((l) => l.startsWith(`${today},${legOut},Morning run,Alice,Bob,,${done},Alice,`));

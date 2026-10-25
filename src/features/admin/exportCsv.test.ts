@@ -4,6 +4,7 @@ import { monthCsv } from './exportCsv';
 import type { CrewTrips, CsvLabels } from './stats';
 
 const LABELS: CsvLabels = {
+  columns: { date: 'date', leg: 'leg', crew: 'crew', driver: 'driver', riders: 'riders', absent: 'absent', status: 'status', completedBy: 'completedBy', completedAt: 'completedAt', cost: 'cost', currency: 'currency' },
   leg: { out: 'out', back: 'back' },
   status: { planned: 'planned', needs_driver: 'needs driver', done: 'done', cancelled: 'cancelled' },
 };

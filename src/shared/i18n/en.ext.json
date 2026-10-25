@@ -96,7 +96,20 @@
       "statsDescription": "Trips in {{month}}",
       "crewsDescription": "Trips in {{month}} and ledger spread",
       "exportDescription": "Download every crew's trips in {{month}} as CSV. Columns: date, leg, crew, driver, riders, absent, status, completed by, completed at{{cost}}.",
-      "exportCostColumns": ", cost, currency"
+      "exportCostColumns": ", cost, currency",
+      "csv": {
+        "date": "Date",
+        "leg": "Leg",
+        "crew": "Crew",
+        "driver": "Driver",
+        "riders": "Riders",
+        "absent": "Absent",
+        "status": "Status",
+        "completedBy": "Completed by",
+        "completedAt": "Completed at",
+        "cost": "Cost",
+        "currency": "Currency"
+      }
     },
     "notMember": {
       "screen": "Join a group",

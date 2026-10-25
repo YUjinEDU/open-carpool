@@ -96,7 +96,20 @@
       "statsDescription": "{{month}} 운행 기준",
       "crewsDescription": "{{month}} 운행과 장부 차이",
       "exportDescription": "{{month}} 모든 크루 운행을 CSV로 받아요. 열: 날짜, 구간, 크루, 운전자, 탑승자, 결석, 상태, 완료자, 완료 시각{{cost}}.",
-      "exportCostColumns": ", 비용, 통화"
+      "exportCostColumns": ", 비용, 통화",
+      "csv": {
+        "date": "날짜",
+        "leg": "구간",
+        "crew": "크루",
+        "driver": "운전자",
+        "riders": "탑승자",
+        "absent": "결석",
+        "status": "상태",
+        "completedBy": "완료자",
+        "completedAt": "완료 시각",
+        "cost": "비용",
+        "currency": "통화"
+      }
     },
     "notMember": {
       "screen": "그룹 참여",
