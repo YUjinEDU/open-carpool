@@ -25,29 +25,53 @@ export interface RateLimitDecision {
 
 const DEFAULT_LIMIT = 60;
 const DEFAULT_WINDOW_SEC = 300;
-const SWEEP_ABOVE_KEYS = 5000;
+/** Hard cap on tracked keys; past it the least recently used key is dropped. */
+const MAX_KEYS = 10_000;
 
 export class SlidingWindowLimiter {
+  /** Insertion order is recency order: `check` re-inserts the key it touches. */
   private readonly hits = new Map<string, number[]>();
+  private lastSweep = Number.NEGATIVE_INFINITY;
 
   constructor(
     readonly config: RateLimitConfig,
     private readonly now: () => number = Date.now,
+    private readonly maxKeys: number = MAX_KEYS,
   ) {}
+
+  get size(): number {
+    return this.hits.size;
+  }
+
+  has(key: string): boolean {
+    return this.hits.has(key);
+  }
 
   check(key: string): RateLimitDecision {
     const t = this.now();
     const cutoff = t - this.config.windowMs;
-    if (this.hits.size > SWEEP_ABOVE_KEYS) this.sweep(cutoff);
+    if (t - this.lastSweep >= this.config.windowMs) {
+      this.sweep(cutoff);
+      this.lastSweep = t;
+    }
     const recent = (this.hits.get(key) ?? []).filter((at) => at > cutoff);
     const oldest = recent[0];
     if (oldest !== undefined && recent.length >= this.config.limit) {
-      this.hits.set(key, recent);
+      this.store(key, recent);
       return { allowed: false, retryAfterSec: Math.max(1, Math.ceil((oldest + this.config.windowMs - t) / 1000)) };
     }
     recent.push(t);
-    this.hits.set(key, recent);
+    this.store(key, recent);
     return { allowed: true, retryAfterSec: 0 };
+  }
+
+  private store(key: string, times: number[]): void {
+    this.hits.delete(key);
+    this.hits.set(key, times);
+    for (const oldest of this.hits.keys()) {
+      if (this.hits.size <= this.maxKeys) break;
+      this.hits.delete(oldest);
+    }
   }
 
   private sweep(cutoff: number): void {
@@ -76,10 +100,19 @@ export function resetRateLimit(): void {
   shared = null;
 }
 
-function clientIp(req: VercelRequest): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  const first = (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim();
-  return first || 'unknown';
+const headerValue = (value: string | string[] | undefined): string | undefined => (Array.isArray(value) ? value[0] : value);
+
+/**
+ * Fallback identity for callers without a uid. Only hops the platform wrote count: Vercel sets
+ * `x-vercel-forwarded-for` itself; otherwise the RIGHTMOST `x-forwarded-for` entry is the one our
+ * proxy appended (the leftmost is whatever the client sent, so it is trivially spoofed).
+ * Self-hosted without a proxy in front: every client controls these headers, so rely on the uid key.
+ */
+export function clientIp(req: VercelRequest): string {
+  const platform = headerValue(req.headers['x-vercel-forwarded-for'])?.split(',')[0]?.trim();
+  if (platform) return platform;
+  const hops = headerValue(req.headers['x-forwarded-for'])?.split(',');
+  return hops?.at(-1)?.trim() || 'unknown';
 }
 
 /** Count this request; answer 429 + Retry-After and return false once the caller is over the limit. */
