@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { VercelRequest } from '@vercel/node';
 import { SlidingWindowLimiter, clientIp } from './_ratelimit';
 
@@ -75,11 +75,22 @@ describe('SlidingWindowLimiter', () => {
 describe('clientIp', () => {
   const req = (headers: Record<string, string>) => ({ headers }) as unknown as VercelRequest;
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('prefers the platform header and ignores a spoofed leftmost x-forwarded-for', () => {
+    vi.stubEnv('VERCEL', '1');
     const real = req({ 'x-vercel-forwarded-for': '203.0.113.9', 'x-forwarded-for': '6.6.6.6, 203.0.113.9' });
     const spoofed = req({ 'x-vercel-forwarded-for': '203.0.113.9', 'x-forwarded-for': '7.7.7.7, 203.0.113.9' });
     expect(clientIp(real)).toBe('203.0.113.9');
     expect(clientIp(spoofed)).toBe('203.0.113.9');
+  });
+
+  it('ignores x-vercel-forwarded-for off Vercel, where the client can set it', () => {
+    vi.stubEnv('VERCEL', '');
+    const forged = req({ 'x-vercel-forwarded-for': '1.1.1.1', 'x-forwarded-for': 'a, 198.51.100.4' });
+    expect(clientIp(forged)).toBe('198.51.100.4');
   });
 
   it('falls back to the rightmost x-forwarded-for hop, which the proxy appended', () => {

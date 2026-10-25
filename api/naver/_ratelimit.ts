@@ -103,14 +103,16 @@ export function resetRateLimit(): void {
 const headerValue = (value: string | string[] | undefined): string | undefined => (Array.isArray(value) ? value[0] : value);
 
 /**
- * Fallback identity for callers without a uid. Only hops the platform wrote count: Vercel sets
- * `x-vercel-forwarded-for` itself; otherwise the RIGHTMOST `x-forwarded-for` entry is the one our
+ * Fallback identity for callers without a uid. Only hops the platform wrote count: on Vercel
+ * (`VERCEL` is set) `x-vercel-forwarded-for` is written by the platform; anywhere else a client can send it, so the RIGHTMOST `x-forwarded-for` entry is the one our
  * proxy appended (the leftmost is whatever the client sent, so it is trivially spoofed).
  * Self-hosted without a proxy in front: every client controls these headers, so rely on the uid key.
  */
 export function clientIp(req: VercelRequest): string {
-  const platform = headerValue(req.headers['x-vercel-forwarded-for'])?.split(',')[0]?.trim();
-  if (platform) return platform;
+  if (process.env.VERCEL) {
+    const platform = headerValue(req.headers['x-vercel-forwarded-for'])?.split(',')[0]?.trim();
+    if (platform) return platform;
+  }
   const hops = headerValue(req.headers['x-forwarded-for'])?.split(',');
   return hops?.at(-1)?.trim() || 'unknown';
 }
