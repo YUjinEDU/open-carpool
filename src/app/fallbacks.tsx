@@ -5,14 +5,23 @@ import { describeError } from '../shared/lib/useAction';
 import { Banner, Button, EmptyState, Skeleton } from '../shared/ui';
 import { PageBody } from './shell/PageBody';
 
-/** First paint of a page: skeletons shaped like a TopBar title, a card and a list. */
+/**
+ * First paint of a page: a bar shaped like the TopBar (same height, surface and hairline, so the header
+ * never disappears between routes), then skeletons shaped like a card and a list.
+ */
 export function LoadingState() {
   const { t } = useTranslation();
   return (
-    <div role="status" aria-label={t('common.loading')} className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-5">
-      <Skeleton className="h-7 w-2/5" />
-      <Skeleton className="h-44" />
-      <Skeleton className="h-28" />
+    <div role="status" aria-label={t('common.loading')}>
+      <div aria-hidden="true" className="sticky top-0 z-20 bg-surface/92 pt-safe backdrop-blur-md hairline-bottom">
+        <div className="mx-auto flex h-(--topbar-height) w-full max-w-md items-center px-5">
+          <Skeleton className="h-5 w-32" />
+        </div>
+      </div>
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-4">
+        <Skeleton className="h-44" />
+        <Skeleton className="h-28" />
+      </div>
     </div>
   );
 }
@@ -42,6 +51,21 @@ export function ErrorBanner({ error, onRetry, title, className }: ErrorBannerPro
     >
       {describeError(error)}
     </Banner>
+  );
+}
+
+export interface LoadErrorStateProps {
+  readonly error: Error;
+  readonly onRetry: () => void;
+}
+
+/** A whole page that could not load (no TopBar yet): the cause in a plain sentence and a retry. */
+export function LoadErrorState({ error, onRetry }: LoadErrorStateProps) {
+  const { t } = useTranslation();
+  return (
+    <PageBody className="justify-center pt-16" role="alert">
+      <EmptyState icon={<AlertCircle />} title={t('common.loadFailed')} description={describeError(error)} action={<Button onClick={onRetry}>{t('common.retry')}</Button>} />
+    </PageBody>
   );
 }
 
