@@ -70,10 +70,11 @@ export function AuthProvider({ children }: { readonly children: ReactNode }) {
     async (displayName: string) => {
       const current = state.profile;
       if (!current) throw new Error('rename needs a loaded profile');
-      await saveProfile({ ...current, displayName });
+      // Field patch: a stale session copy must not write an older locale back (X-01).
+      await patchProfile({ displayName });
       await setDisplayNameEverywhere(current.uid, displayName);
     },
-    [state.profile, saveProfile],
+    [state.profile, patchProfile],
   );
 
   const value = useMemo(() => ({ ...state, saveProfile, patchProfile, rename }), [state, saveProfile, patchProfile, rename]);
