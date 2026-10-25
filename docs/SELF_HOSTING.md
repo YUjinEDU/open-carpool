@@ -31,10 +31,19 @@ Copy `.env.example` to `.env.local` (local) and set the same values in your host
 | `ALLOWED_ORIGINS` | yes (production) | comma-separated exact origins allowed to call `/api/naver/*`, e.g. `https://carpool.example.org`. `localhost` dev origins are added only when `VERCEL_ENV` is not `production` |
 | `FIREBASE_PROJECT_ID` | for `/api/naver/*` | project whose ID tokens the Naver proxy accepts (falls back to `VITE_FIREBASE_PROJECT_ID`). Without either the proxy answers 500 |
 | `ALLOW_EMULATOR_ID_TOKENS` | no (dev only) | `true` lets the proxy accept unsigned Auth-emulator tokens, only together with `FIREBASE_AUTH_EMULATOR_HOST` and `VERCEL_ENV` other than `production` |
+| `NAVER_RATE_LIMIT`, `NAVER_RATE_WINDOW_SEC` | no | per-user limit for `/api/naver/*`: requests per window (default `60`) per window seconds (default `300`). Over the limit the proxy answers `429` with `Retry-After` and makes no upstream call. The counter is **per-instance memory**: best effort on serverless (each warm instance counts separately, cold starts reset it). For a hard global limit, swap `SlidingWindowLimiter` in `api/naver/_ratelimit.ts` for a shared store such as Upstash Redis / Vercel KV |
+| `VITE_APPCHECK_SITE_KEY` | no | reCAPTCHA Enterprise site key; enables Firebase App Check (see below). Ignored when `VITE_USE_FIREBASE_EMULATOR=true` |
 | `VITE_KAKAO_OIDC_ENABLED` | no | `true` after step 2.5 |
 | `VITE_KAKAO_JS_KEY` | no | Kakao share button |
 
 Without map keys the app still works: members type an area name and no coordinates are stored.
+
+### Optional: Firebase App Check (S-12)
+App Check makes Firestore reject requests that do not come from your real web app.
+1. Google Cloud console > reCAPTCHA Enterprise: create a **website** key for your production domain(s) and copy the site key.
+2. Firebase console > App Check > Apps: register your web app, choose **reCAPTCHA Enterprise**, and paste the same site key.
+3. Set `VITE_APPCHECK_SITE_KEY` to the site key and redeploy. The client then attaches App Check tokens to Firestore/Auth requests (the CSP in `vercel.json` already allows reCAPTCHA and `content-firebaseappcheck.googleapis.com`).
+4. Watch Firebase console > App Check > APIs > Cloud Firestore metrics for a few days. Only when almost all traffic is verified, click **Enforce**; enforcing earlier locks out users on old cached builds.
 
 ## 4. Deploy to Vercel
 1. Import the repository in Vercel. Framework preset: **Vite**. Build command `npm run build`, output `dist`.

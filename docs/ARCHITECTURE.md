@@ -44,8 +44,8 @@ Review: `.omo/reviews/security-r1.md` (finding ids S-xx). Rules tests in `tests/
 - HTTP: `vercel.json` sends a Content-Security-Policy (`frame-ancestors 'none'`, no inline scripts), `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy` (see `docs/SELF_HOSTING.md`).
 
 Remaining items:
-- **S-12 (recommended)**: enable Firebase App Check (reCAPTCHA Enterprise) and enforce it for Firestore; set a budget alert. Signed-in users can still create unbounded groups/docs within the shape limits.
+- **S-12 (client support done, enforcement is ops)**: set `VITE_APPCHECK_SITE_KEY` to turn on Firebase App Check (reCAPTCHA Enterprise; `src/shared/appCheck.ts`), then enforce it for Firestore after monitoring (docs/SELF_HOSTING.md); set a budget alert. Signed-in users can still create unbounded groups/docs within the shape limits.
 - **S-13 (done)**: the Pretendard dynamic subset is self-hosted from the `pretendard` npm package (`src/index.css`, bundled by Vite into `/assets`); the CSP has no font or style host beyond `'self'` (`src/font.test.ts`, `api/_security-headers.test.ts`).
 - **S-04**: `areaLabel` stores the geocoder's full address; tracked separately (product + data change).
 - **S-16 / S-17 (info)**: Kakao OIDC `email_verified` depends on provider claims (keep "one account per email address"); the invite-code oracle is infeasible for small installs, see the review for many-group instances.
-- The Naver proxy has no per-user rate limit yet; a valid account can still spend quota.
+- The Naver proxy has a per-user sliding-window rate limit (`api/naver/_ratelimit.ts`, default 60 per 5 min, 429 + `Retry-After`), but the counter is per-instance memory (best effort on serverless); use a shared store for a hard limit.
