@@ -7,13 +7,11 @@ import { useGroup } from '../../app/providers/group';
 import { PageBody } from '../../app/shell/PageBody';
 import { useBack } from '../../app/shell/useBack';
 import { setCrewStatus, withdrawCrew } from '../../data/crews';
-import { listTrips } from '../../data/trips';
-import { CHURN_WINDOW_DAYS, detectChurn } from '../../domain/churn';
-import { addDays, today } from '../../domain/dates';
+import { detectChurn } from '../../domain/churn';
+import { today } from '../../domain/dates';
 import { pickDriver, scoreInRides } from '../../domain/rotation';
 import type { Crew, Member, Trip } from '../../domain/types';
 import { formatDate, joinNames } from '../../shared/lib/format';
-import { useLoad } from '../../shared/lib/loadable';
 import { useAction } from '../../shared/lib/useAction';
 import { Avatar, Badge, Banner, Button, Card, CardHeader, Dialog, EmptyState, LedgerBar, List, ListItem, Sheet, Skeleton, Stat, TopBar, copyText, showToast } from '../../shared/ui';
 import { LegalNotice } from '../groups/LegalNotice';
@@ -24,6 +22,7 @@ import { compareTrips, legTime } from '../trips/nextTrip';
 import { TripCard } from '../trips/TripCard';
 import { CrewForm } from './CrewForm';
 import { useCrews } from './hooks';
+import { tripStats, useCrewHistory } from './useCrewHistory';
 import { useProposalActions } from './useProposalActions';
 import { weekdayRange } from '../profile/schedule';
 
@@ -89,10 +88,7 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
   const { group, me, isAdmin } = useGroup();
   const trips = useCrewPlan(crew, members);
   const todayDate = today(GROUP_TZ);
-  const [past] = useLoad(
-    () => listTrips(group.id, crew.id, { from: addDays(todayDate, -2 * CHURN_WINDOW_DAYS), to: todayDate }),
-    [group.id, crew.id, todayDate],
-  );
+  const past = useCrewHistory(group.id, crew.id, todayDate);
   const memberById = useMemo(() => new Map(members.map((m) => [m.uid, m])), [members]);
   const names = useMemo(() => new Map(members.map((m) => [m.uid, m.displayName])), [members]);
   const name = (uid: string) => names.get(uid) ?? uid;
@@ -127,9 +123,8 @@ function CrewDetail({ crew, members, onBack }: { readonly crew: Crew; readonly m
 
   const pastTrips: readonly Trip[] = past.status === 'ready' ? past.data : [];
   const churn = useMemo(() => detectChurn(pastTrips, crew, todayDate), [pastTrips, crew, todayDate]);
-  const doneCount = pastTrips.filter((trip) => trip.status === 'done').length;
-  // Only trips that are over count: today's still-planned legs are not misses, and a new crew shows "-" rather than 0%.
-  const counted = pastTrips.filter((trip) => trip.status !== 'cancelled' && (trip.status === 'done' || trip.date < todayDate)).length;
+  // A new crew shows "-" rather than 0% (counted is 0).
+  const { done: doneCount, counted } = useMemo(() => tripStats(pastTrips, todayDate), [pastTrips, todayDate]);
   const droveCount = (uid: string) => pastTrips.filter((trip) => trip.status === 'done' && trip.driverId === uid).length;
 
   const ledger: readonly LedgerRowView[] = useMemo(
