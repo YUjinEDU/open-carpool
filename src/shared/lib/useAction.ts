@@ -1,7 +1,7 @@
 import { FirebaseError } from 'firebase/app';
 import { useCallback, useRef, useState } from 'react';
 import { showToast } from '../ui';
-import { InviteNotFoundError, MembershipRemovedError } from '../../data/groups';
+import { GroupDeleteIncompleteError, InviteNotFoundError, MembershipRemovedError } from '../../data/groups';
 import { CarFullError, SeatsBelowRidersError } from '../../data/events';
 import { DriverTakenError, TripAlreadyAppliedError } from '../../data/trips';
 import { GeocodeError } from '../../features/map/geocoder';
@@ -31,6 +31,7 @@ const FIREBASE_CODES: Record<string, string> = {
 export function describeError(e: unknown): string {
   if (e instanceof InviteNotFoundError) return i18n.t('join.notFound');
   if (e instanceof MembershipRemovedError) return i18n.t('join.removed');
+  if (e instanceof GroupDeleteIncompleteError) return i18n.t('settings.owner.deleteIncomplete');
   if (e instanceof DriverTakenError) return i18n.t('trip.driverTaken');
   if (e instanceof TripAlreadyAppliedError) return i18n.t('trip.alreadyApplied');
   if (e instanceof CarFullError) return i18n.t('events.carFull');

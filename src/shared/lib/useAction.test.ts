@@ -2,6 +2,7 @@ import { FirebaseError } from 'firebase/app';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { CarFullError, SeatsBelowRidersError } from '../../data/events';
+import { GroupDeleteIncompleteError } from '../../data/groups';
 import { DriverTakenError, TripAlreadyAppliedError } from '../../data/trips';
 import i18n from '../i18n';
 import { describeError, useAction } from './useAction';
@@ -10,6 +11,10 @@ import { describeError, useAction } from './useAction';
 vi.mock('../../firebase', () => ({ db: {}, auth: {} }));
 
 describe('describeError', () => {
+  it('asks to finish deleting when a group delete did not drain', () => {
+    expect(describeError(new GroupDeleteIncompleteError('g1'))).toBe(i18n.t('settings.owner.deleteIncomplete'));
+    expect(describeError(new GroupDeleteIncompleteError('g1'))).not.toBe(i18n.t('common.unexpected'));
+  });
   it.each([
     [new TripAlreadyAppliedError('t1'), 'trip.alreadyApplied'],
     [new DriverTakenError('t1'), 'trip.driverTaken'],

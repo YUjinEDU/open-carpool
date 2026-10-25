@@ -222,7 +222,8 @@
       "title": "Owner",
       "description": "Only the group owner can do this.",
       "transfer": "Transfer ownership",
-      "delete": "Delete group"
+      "delete": "Delete group",
+      "deleteIncomplete": "Not everything is deleted yet. Tap it once more."
     },
     "transfer": {
       "title": "Who should own this group?",
