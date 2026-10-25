@@ -13,6 +13,7 @@ import { Banner, Button, Card, EmptyState, Skeleton, TopBar } from '../../shared
 import { isDefaultDisplayName } from '../auth/authService';
 import { NameForm } from '../auth/NameForm';
 import { SignInBlock } from '../auth/SignInBlock';
+import { ConsentNote } from '../legal/ConsentNote';
 
 /**
  * Invite landing, reachable signed out: the group behind the link, sign-in inline, a name when the
@@ -69,7 +70,7 @@ export function JoinPage() {
             <Card padding="lg">
               <SignInBlock next={next} />
             </Card>
-            <p className="text-center text-caption text-ink-3">{t('signin.consent')}</p>
+            <ConsentNote />
           </>
         )}
 

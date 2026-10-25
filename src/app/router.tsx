@@ -23,6 +23,9 @@ export const router = createBrowserRouter([
       { path: '/signin/finish', element: page(async () => (await import('../features/auth/SignInFinishPage')).SignInFinishPage) },
       // The invite landing works signed out: it signs the visitor in inline, then joins.
       { path: '/join/:code', element: page(async () => (await import('../features/groups/JoinPage')).JoinPage) },
+      // The documents the consent line names; readable before sign-in, so outside the guard.
+      { path: '/legal/terms', element: page(async () => (await import('../features/legal/LegalPage')).TermsPage) },
+      { path: '/legal/privacy', element: page(async () => (await import('../features/legal/LegalPage')).PrivacyPage) },
       {
         element: <RequireAuth />,
         children: [

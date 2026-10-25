@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate, useSearchParams } from 'react-router';
 import { useAuth } from '../../app/providers/auth';
+import { ConsentNote } from '../legal/ConsentNote';
 import { safeNext } from './next';
 import { SignInBlock } from './SignInBlock';
 
@@ -20,7 +21,7 @@ export function SignInPage() {
         <p className="text-body text-ink-2">{t('signin.subtitle')}</p>
       </div>
       <SignInBlock next={next} />
-      <p className="mt-auto pt-8 text-center text-caption text-ink-3">{t('signin.consent')}</p>
+      <ConsentNote className="mt-auto pt-8" />
     </main>
   );
 }
