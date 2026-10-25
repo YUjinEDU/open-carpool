@@ -6,7 +6,10 @@ import type { PressableProps } from './types';
 export interface ChipProps extends Omit<PressableProps, 'type'> {
   children?: ReactNode;
   selected?: boolean;
-  /** Shows a check glyph when selected so state is not colour-only. Default on. */
+  /**
+   * Inline check glyph when selected (default), so state is never colour alone. false: a compact corner
+   * marker instead, for dense rows such as the seven weekday chips, where seven inline checks would not fit.
+   */
   showCheck?: boolean;
   size?: 'sm' | 'md';
   icon?: ReactNode;
@@ -23,7 +26,7 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
       type="button"
       aria-pressed={selected}
       className={cx(
-        'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-chip border font-medium whitespace-nowrap',
+        'relative inline-flex shrink-0 items-center justify-center gap-1.5 rounded-chip border font-medium whitespace-nowrap',
         'transition-[background-color,color,border-color,transform] duration-150 active:scale-[0.97] motion-reduce:active:scale-100 disabled:opacity-45 disabled:pointer-events-none',
         size === 'md' ? 'h-11 min-w-11 px-3.5 text-sub' : 'h-9 min-w-9 px-3 text-caption',
         selected
@@ -35,6 +38,11 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(function Chip(
     >
       {selected && showCheck ? <Check aria-hidden="true" className="size-4" strokeWidth={2.5} /> : icon && <span aria-hidden="true" className="inline-flex [&_svg]:size-4">{icon}</span>}
       {children}
+      {selected && !showCheck && (
+        <span aria-hidden="true" className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-chip bg-accent text-on-accent">
+          <Check className="size-3" strokeWidth={3} />
+        </span>
+      )}
     </button>
   );
 });
