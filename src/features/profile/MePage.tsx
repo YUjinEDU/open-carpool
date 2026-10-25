@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { LogOut } from 'lucide-react';
@@ -9,8 +9,8 @@ import { PageBody } from '../../app/shell/PageBody';
 import { useBack } from '../../app/shell/useBack';
 import { readThemePreference, setThemePreference, type ThemePreference } from '../../app/theme';
 import type { Locale } from '../../domain/types';
-import { LOCALES } from '../../shared/i18n';
-import { useAction } from '../../shared/lib/useAction';
+import { LOCALES, setLocale as applyLocale } from '../../shared/i18n';
+import { describeError, useAction } from '../../shared/lib/useAction';
 import { Avatar, Button, Card, CardHeader, Input, SegmentedControl, Switch, TopBar, showToast } from '../../shared/ui';
 import { signOut } from '../auth/authService';
 
@@ -22,7 +22,9 @@ export function MePage() {
   const { saveProfile, rename } = useAuth();
   const { profile } = useSession();
   const [displayName, setDisplayName] = useState(profile.displayName);
-  const [locale, setLocale] = useState<Locale>(profile.locale);
+  const [locale, setLocaleState] = useState<Locale>(profile.locale);
+  // Background locale writes run one after another, so the last choice is the one that lands in the profile.
+  const localeSaves = useRef(Promise.resolve());
   const [theme, setTheme] = useState<ThemePreference>(() => readThemePreference());
   const [notify, setNotify] = useState(() => digestOptIn());
   const [permission, setPermission] = useState(() => notificationState());
@@ -51,6 +53,19 @@ export function MePage() {
   const changeTheme = (next: ThemePreference) => {
     setTheme(next);
     setThemePreference(next);
+  };
+  // Like the theme: the language switches at once; the profile write follows without a 저장 tap.
+  const changeLocale = (next: Locale) => {
+    const saved = profile.locale;
+    setLocaleState(next);
+    applyLocale(next);
+    localeSaves.current = localeSaves.current
+      .then(() => saveProfile({ ...profile, locale: next }))
+      .catch((e: unknown) => {
+        showToast(describeError(e), 'error');
+        setLocaleState(saved);
+        applyLocale(saved);
+      });
   };
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -89,7 +104,7 @@ export function MePage() {
                 label={t('me.locale')}
                 options={LOCALES.map((l) => ({ value: l, label: t(`locale.${l}`) }))}
                 value={locale}
-                onChange={setLocale}
+                onChange={changeLocale}
                 testId="me-locale"
               />
             </div>
