@@ -13,6 +13,10 @@ const csp = () => new Map((header('Content-Security-Policy') ?? '').split(';').m
 }));
 
 describe('security headers', () => {
+  it('keeps the CSP copy in docs/SELF_HOSTING.md equal to vercel.json', () => {
+    const doc = readFileSync('docs/SELF_HOSTING.md', 'utf8');
+    expect(doc).toContain(header('Content-Security-Policy') ?? 'missing CSP');
+  });
   it('sends the static hardening headers on every route', () => {
     expect(header('X-Content-Type-Options')).toBe('nosniff');
     expect(header('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
